@@ -49,16 +49,16 @@ jso_rc jso_schema_version_set(
 		return JSO_SUCCESS;
 	}
 	if (jso_string_equals_to_cstr(version, JSO_SCHEMA_VERSION_IDENTIFIER_DRAFT_07)) {
-		return jso_schema_error_set(
-				schema, JSO_SCHEMA_ERROR_VERSION, "Draft 7 is not yet supported");
+		schema->version = JSO_SCHEMA_VERSION_DRAFT_07;
+		return JSO_SUCCESS;
 	}
 	if (jso_string_equals_to_cstr(version, JSO_SCHEMA_VERSION_IDENTIFIER_DRAFT_2019_09)) {
-		return jso_schema_error_set(
-				schema, JSO_SCHEMA_ERROR_VERSION, "Draft 2019-09 is not yet supported");
+		schema->version = JSO_SCHEMA_VERSION_DRAFT_2019_09;
+		return JSO_SUCCESS;
 	}
 	if (jso_string_equals_to_cstr(version, JSO_SCHEMA_VERSION_IDENTIFIER_DRAFT_2020_12)) {
-		return jso_schema_error_set(
-				schema, JSO_SCHEMA_ERROR_VERSION, "Draft 2020-12 is not yet supported");
+		schema->version = JSO_SCHEMA_VERSION_DRAFT_2020_12;
+		return JSO_SUCCESS;
 	}
 	if (jso_string_equals_to_cstr(version, JSO_SCHEMA_VERSION_IDENTIFIER_DEPRECATED_LATEST)) {
 		return jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VERSION,
@@ -66,7 +66,6 @@ jso_rc jso_schema_version_set(
 				JSO_SCHEMA_VERSION_IDENTIFIER_DEPRECATED_LATEST);
 	}
 
-	return jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VERSION,
-			"Unknown $schema %s, only drafts 4 and 6 are currently supported",
-			JSO_STRING_VAL(version));
+	return jso_schema_error_format(
+			schema, JSO_SCHEMA_ERROR_VERSION, "Unknown $schema %s", JSO_STRING_VAL(version));
 }

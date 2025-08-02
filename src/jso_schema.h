@@ -133,6 +133,8 @@ typedef enum {
 	JSO_SCHEMA_KEYWORD_TYPE_SCHEMA_OBJECT,
 	/** object of schema objects keyword type */
 	JSO_SCHEMA_KEYWORD_TYPE_OBJECT_OF_SCHEMA_OBJECTS,
+	/** object of array of strings keyword type */
+	JSO_SCHEMA_KEYWORD_TYPE_OBJECT_OF_ARRAY_OF_STRINGS,
 	/** object of schema objects or array of strings keyword type */
 	JSO_SCHEMA_KEYWORD_TYPE_OBJECT_OF_SCHEMA_OBJECTS_OR_ARRAY_OF_STRINGS,
 	/** object with regural expression keys of schema objects keyword type */
@@ -472,7 +474,7 @@ typedef struct _jso_schema_keyword {
 	/** oneOf keyword */ \
 	jso_schema_keyword one_of; \
 	/** not keyword */ \
-	jso_schema_keyword not; \
+	jso_schema_keyword not ; \
 	/** definitions keyword */ \
 	jso_schema_keyword definitions; \
 	/** title keyword */ \
@@ -593,6 +595,16 @@ typedef struct _jso_schema_value_object {
 	jso_schema_keyword pattern_properties;
 	/** dependencies keyword */
 	jso_schema_keyword dependencies;
+	/** dependentRequired keyword */
+	jso_schema_keyword dependent_required;
+	/** dependentSchemas keyword */
+	jso_schema_keyword dependent_schemas;
+	/** if keyword */
+	jso_schema_keyword cond_if;
+	/** then keyword */
+	jso_schema_keyword cond_then;
+	/** else keyword */
+	jso_schema_keyword cond_else;
 	/** propertyNames keyword */
 	jso_schema_keyword property_names;
 } jso_schema_value_object;
@@ -912,6 +924,9 @@ typedef enum _jso_schema_version {
 	JSO_SCHEMA_VERSION_NONE = 0,
 	JSO_SCHEMA_VERSION_DRAFT_04,
 	JSO_SCHEMA_VERSION_DRAFT_06,
+	JSO_SCHEMA_VERSION_DRAFT_07,
+	JSO_SCHEMA_VERSION_DRAFT_2019_09,
+	JSO_SCHEMA_VERSION_DRAFT_2020_12,
 } jso_schema_version;
 
 /** @brief Schema latest identified (should not be used, just for better error reporting) */

@@ -42,6 +42,8 @@ static const jso_schema_keyword_free_callback schema_keyword_free_callbacks[] = 
 	[JSO_SCHEMA_KEYWORD_TYPE_SCHEMA_OBJECT] = jso_schema_keyword_free_schema_object,
 	[JSO_SCHEMA_KEYWORD_TYPE_OBJECT_OF_SCHEMA_OBJECTS]
 	= jso_schema_keyword_free_object_of_schema_objects,
+	[JSO_SCHEMA_KEYWORD_TYPE_OBJECT_OF_ARRAY_OF_STRINGS]
+	= jso_schema_keyword_free_object_of_schema_objects,
 	[JSO_SCHEMA_KEYWORD_TYPE_OBJECT_OF_SCHEMA_OBJECTS_OR_ARRAY_OF_STRINGS]
 	= jso_schema_keyword_free_object_of_schema_objects,
 	[JSO_SCHEMA_KEYWORD_TYPE_REGEXP_OBJECT_OF_SCHEMA_OBJECTS]

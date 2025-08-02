@@ -45,7 +45,7 @@ static void jso_schema_value_free_common(jso_schema_value *val)
 	jso_schema_keyword_free(&comval->all_of);
 	jso_schema_keyword_free(&comval->any_of);
 	jso_schema_keyword_free(&comval->one_of);
-	jso_schema_keyword_free(&comval->not);
+	jso_schema_keyword_free(&comval->not );
 	jso_schema_keyword_free(&comval->enum_elements);
 	jso_schema_keyword_free(&comval->const_value);
 	jso_schema_keyword_free(&comval->definitions);
@@ -120,6 +120,11 @@ static void jso_schema_value_free_object(jso_schema_value *val)
 	jso_schema_keyword_free(&objval->required);
 	jso_schema_keyword_free(&objval->pattern_properties);
 	jso_schema_keyword_free(&objval->dependencies);
+	jso_schema_keyword_free(&objval->dependent_required);
+	jso_schema_keyword_free(&objval->dependent_schemas);
+	jso_schema_keyword_free(&objval->cond_if);
+	jso_schema_keyword_free(&objval->cond_then);
+	jso_schema_keyword_free(&objval->cond_else);
 	jso_schema_keyword_free(&objval->property_names);
 	jso_free(objval);
 	JSO_SCHEMA_VALUE_DATA_OBJ_P(val) = NULL;

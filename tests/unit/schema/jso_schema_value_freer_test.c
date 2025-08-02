@@ -79,7 +79,7 @@ static void jso_test_expect_free_common(jso_schema_value_common *value)
 	JSO_TEST_SCHEMA_FREE_KW(value, all_of);
 	JSO_TEST_SCHEMA_FREE_KW(value, any_of);
 	JSO_TEST_SCHEMA_FREE_KW(value, one_of);
-	JSO_TEST_SCHEMA_FREE_KW(value, not);
+	JSO_TEST_SCHEMA_FREE_KW(value, not );
 	JSO_TEST_SCHEMA_FREE_KW(value, enum_elements);
 	JSO_TEST_SCHEMA_FREE_KW(value, const_value);
 	JSO_TEST_SCHEMA_FREE_KW(value, definitions);
@@ -257,6 +257,11 @@ static void test_jso_schema_value_clear_object(void **state)
 	JSO_TEST_SCHEMA_FREE_KW(objval, required);
 	JSO_TEST_SCHEMA_FREE_KW(objval, pattern_properties);
 	JSO_TEST_SCHEMA_FREE_KW(objval, dependencies);
+	JSO_TEST_SCHEMA_FREE_KW(objval, dependent_required);
+	JSO_TEST_SCHEMA_FREE_KW(objval, dependent_schemas);
+	JSO_TEST_SCHEMA_FREE_KW(objval, cond_if);
+	JSO_TEST_SCHEMA_FREE_KW(objval, cond_then);
+	JSO_TEST_SCHEMA_FREE_KW(objval, cond_else);
 	JSO_TEST_SCHEMA_FREE_KW(objval, property_names);
 
 	jso_schema_value_clear(&value);

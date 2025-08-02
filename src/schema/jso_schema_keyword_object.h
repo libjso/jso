@@ -43,6 +43,10 @@ jso_schema_keyword *jso_schema_keyword_get_object_of_schema_objects(jso_schema *
 		jso_value *data, const char *key, jso_bool error_on_invalid_type, jso_uint32 keyword_flags,
 		jso_schema_keyword *schema_keyword, jso_value *val, jso_schema_value *parent);
 
+jso_schema_keyword *jso_schema_keyword_get_object_of_array_of_strings(jso_schema *schema,
+		jso_value *data, const char *key, jso_bool error_on_invalid_type, jso_uint32 keyword_flags,
+		jso_schema_keyword *schema_keyword, jso_value *val, jso_schema_value *parent);
+
 jso_schema_keyword *jso_schema_keyword_get_object_of_schema_objects_or_array_of_strings(
 		jso_schema *schema, jso_value *data, const char *key, jso_bool error_on_invalid_type,
 		jso_uint32 keyword_flags, jso_schema_keyword *schema_keyword, jso_value *val,

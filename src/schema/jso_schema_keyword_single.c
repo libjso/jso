@@ -51,6 +51,8 @@ static const jso_schema_keyword_get_callback schema_keyword_get_callbacks[] = {
 	[JSO_SCHEMA_KEYWORD_TYPE_SCHEMA_OBJECT] = jso_schema_keyword_get_schema_object,
 	[JSO_SCHEMA_KEYWORD_TYPE_OBJECT_OF_SCHEMA_OBJECTS]
 	= jso_schema_keyword_get_object_of_schema_objects,
+	[JSO_SCHEMA_KEYWORD_TYPE_OBJECT_OF_ARRAY_OF_STRINGS]
+	= jso_schema_keyword_get_object_of_array_of_strings,
 	[JSO_SCHEMA_KEYWORD_TYPE_OBJECT_OF_SCHEMA_OBJECTS_OR_ARRAY_OF_STRINGS]
 	= jso_schema_keyword_get_object_of_schema_objects_or_array_of_strings,
 	[JSO_SCHEMA_KEYWORD_TYPE_REGEXP_OBJECT_OF_SCHEMA_OBJECTS]

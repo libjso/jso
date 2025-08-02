@@ -77,10 +77,10 @@ jso_schema_keyword *jso_schema_keyword_get_schema_object(jso_schema *schema, jso
 	return NULL;
 }
 
-static inline jso_schema_keyword *jso_schema_keyword_get_custom_object(jso_schema *schema,
-		jso_value *data, const char *key, jso_bool error_on_invalid_type, jso_uint32 keyword_flags,
+static jso_schema_keyword *jso_schema_keyword_get_custom_object(jso_schema *schema, jso_value *data,
+		const char *key, jso_bool error_on_invalid_type, jso_uint32 keyword_flags,
 		jso_schema_keyword *schema_keyword, jso_value *val, jso_schema_value *parent,
-		jso_bool regexp_key, jso_bool can_be_array_of_strings)
+		jso_bool regexp_key, jso_bool can_be_array_of_strings, jso_bool can_be_schema_object)
 {
 	val = jso_schema_data_get(
 			schema, data, key, JSO_TYPE_OBJECT, keyword_flags, error_on_invalid_type, val);
@@ -112,7 +112,7 @@ static inline jso_schema_keyword *jso_schema_keyword_get_custom_object(jso_schem
 				return NULL;
 			}
 			JSO_VALUE_SET_ARRAY(objval, jso_array_copy(arr));
-		} else {
+		} else if (can_be_schema_object) {
 			if (JSO_TYPE_P(item) != JSO_TYPE_OBJECT
 					&& (schema->version < JSO_SCHEMA_VERSION_DRAFT_06
 							|| JSO_TYPE_P(item) != JSO_TYPE_BOOL)) {
@@ -140,6 +140,12 @@ static inline jso_schema_keyword *jso_schema_keyword_get_custom_object(jso_schem
 			}
 
 			JSO_VALUE_SET_SCHEMA_VALUE(objval, schema_value);
+		} else {
+			JSO_ASSERT(can_be_array_of_strings);
+			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALUE_DATA_TYPE,
+					"Object value for keyword %s must be an array of string", key);
+			jso_object_free(schema_obj);
+			return NULL;
 		}
 
 		jso_rc add_res = jso_object_add(schema_obj, jso_string_copy(objkey), &objval);
@@ -158,7 +164,15 @@ jso_schema_keyword *jso_schema_keyword_get_object_of_schema_objects(jso_schema *
 		jso_schema_keyword *schema_keyword, jso_value *val, jso_schema_value *parent)
 {
 	return jso_schema_keyword_get_custom_object(schema, data, key, error_on_invalid_type,
-			keyword_flags, schema_keyword, val, parent, false, false);
+			keyword_flags, schema_keyword, val, parent, false, false, true);
+}
+
+jso_schema_keyword *jso_schema_keyword_get_object_of_array_of_strings(jso_schema *schema,
+		jso_value *data, const char *key, jso_bool error_on_invalid_type, jso_uint32 keyword_flags,
+		jso_schema_keyword *schema_keyword, jso_value *val, jso_schema_value *parent)
+{
+	return jso_schema_keyword_get_custom_object(schema, data, key, error_on_invalid_type,
+			keyword_flags, schema_keyword, val, parent, false, true, false);
 }
 
 jso_schema_keyword *jso_schema_keyword_get_object_of_schema_objects_or_array_of_strings(
@@ -167,7 +181,7 @@ jso_schema_keyword *jso_schema_keyword_get_object_of_schema_objects_or_array_of_
 		jso_schema_value *parent)
 {
 	return jso_schema_keyword_get_custom_object(schema, data, key, error_on_invalid_type,
-			keyword_flags, schema_keyword, val, parent, false, true);
+			keyword_flags, schema_keyword, val, parent, false, true, true);
 }
 
 jso_schema_keyword *jso_schema_keyword_get_regexp_object_of_schema_objects(jso_schema *schema,
@@ -175,7 +189,7 @@ jso_schema_keyword *jso_schema_keyword_get_regexp_object_of_schema_objects(jso_s
 		jso_schema_keyword *schema_keyword, jso_value *val, jso_schema_value *parent)
 {
 	return jso_schema_keyword_get_custom_object(schema, data, key, error_on_invalid_type,
-			keyword_flags, schema_keyword, val, parent, true, false);
+			keyword_flags, schema_keyword, val, parent, true, false, true);
 }
 
 void jso_schema_keyword_free_object(jso_schema_keyword *schema_keyword)
