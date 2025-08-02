@@ -474,7 +474,7 @@ typedef struct _jso_schema_keyword {
 	/** oneOf keyword */ \
 	jso_schema_keyword one_of; \
 	/** not keyword */ \
-	jso_schema_keyword not ; \
+	jso_schema_keyword not; \
 	/** definitions keyword */ \
 	jso_schema_keyword definitions; \
 	/** title keyword */ \

@@ -79,7 +79,7 @@ static void jso_test_expect_free_common(jso_schema_value_common *value)
 	JSO_TEST_SCHEMA_FREE_KW(value, all_of);
 	JSO_TEST_SCHEMA_FREE_KW(value, any_of);
 	JSO_TEST_SCHEMA_FREE_KW(value, one_of);
-	JSO_TEST_SCHEMA_FREE_KW(value, not );
+	JSO_TEST_SCHEMA_FREE_KW(value, not);
 	JSO_TEST_SCHEMA_FREE_KW(value, enum_elements);
 	JSO_TEST_SCHEMA_FREE_KW(value, const_value);
 	JSO_TEST_SCHEMA_FREE_KW(value, definitions);

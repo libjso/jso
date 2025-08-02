@@ -267,7 +267,7 @@ static void test_jso_schema_value_init_when_all_good_and_init_with_idref_not_set
 	expect_value(__wrap_jso_schema_keyword_set, data, &data);
 	expect_string(__wrap_jso_schema_keyword_set, key, "not");
 	expect_value(__wrap_jso_schema_keyword_set, value, &value);
-	expect_value(__wrap_jso_schema_keyword_set, schema_keyword, &value_data.not );
+	expect_value(__wrap_jso_schema_keyword_set, schema_keyword, &value_data.not);
 	expect_value(
 			__wrap_jso_schema_keyword_set, keyword_type, JSO_SCHEMA_KEYWORD_TYPE_SCHEMA_OBJECT);
 	expect_value(__wrap_jso_schema_keyword_set, keyword_flags, 0);
@@ -454,7 +454,7 @@ static void test_jso_schema_value_init_when_all_good_and_init_with_idref_set(voi
 	expect_value(__wrap_jso_schema_keyword_set, data, &data);
 	expect_string(__wrap_jso_schema_keyword_set, key, "not");
 	expect_value(__wrap_jso_schema_keyword_set, value, &value);
-	expect_value(__wrap_jso_schema_keyword_set, schema_keyword, &value_data.not );
+	expect_value(__wrap_jso_schema_keyword_set, schema_keyword, &value_data.not);
 	expect_value(
 			__wrap_jso_schema_keyword_set, keyword_type, JSO_SCHEMA_KEYWORD_TYPE_SCHEMA_OBJECT);
 	expect_value(__wrap_jso_schema_keyword_set, keyword_flags, 0);
@@ -631,7 +631,7 @@ static void test_jso_schema_value_init_when_all_good_and_init_with_draft4_id_set
 	expect_value(__wrap_jso_schema_keyword_set, data, &data);
 	expect_string(__wrap_jso_schema_keyword_set, key, "not");
 	expect_value(__wrap_jso_schema_keyword_set, value, &value);
-	expect_value(__wrap_jso_schema_keyword_set, schema_keyword, &value_data.not );
+	expect_value(__wrap_jso_schema_keyword_set, schema_keyword, &value_data.not);
 	expect_value(
 			__wrap_jso_schema_keyword_set, keyword_type, JSO_SCHEMA_KEYWORD_TYPE_SCHEMA_OBJECT);
 	expect_value(__wrap_jso_schema_keyword_set, keyword_flags, 0);
