@@ -1120,6 +1120,174 @@ static void test_jso_schema_object_property_names(void **state)
 	jso_schema_clear(&schema);
 }
 
+/* A test for an object type with string array dependencies. */
+static void test_jso_schema_object_dependencies_array_of_strings(void **state)
+{
+	(void) state; /* unused */
+
+	jso_schema_validation_result result;
+	jso_builder builder;
+	jso_builder_init(&builder);
+
+	// build schema
+	jso_schema_test_start_schema_object(&builder);
+	jso_builder_object_add_cstr(&builder, "type", "object");
+	// properties
+	jso_builder_object_add_object_start(&builder, "properties");
+	// name property
+	jso_builder_object_add_object_start(&builder, "name");
+	jso_builder_object_add_cstr(&builder, "type", "string");
+	jso_builder_object_end(&builder);
+	// credit_card property
+	jso_builder_object_add_object_start(&builder, "credit_card");
+	jso_builder_object_add_cstr(&builder, "type", "number");
+	jso_builder_object_end(&builder);
+	// billing_address property
+	jso_builder_object_add_object_start(&builder, "billing_address");
+	jso_builder_object_add_cstr(&builder, "type", "string");
+	jso_builder_object_end(&builder);
+	// end properties
+	jso_builder_object_end(&builder);
+	// required
+	jso_builder_object_add_array_start(&builder, "required");
+	jso_builder_array_add_cstr(&builder, "name");
+	jso_builder_array_end(&builder);
+	// dependencies
+	jso_builder_object_add_object_start(&builder, "dependencies");
+	jso_builder_object_add_array_start(&builder, "credit_card");
+	jso_builder_array_add_cstr(&builder, "billing_address");
+	jso_builder_array_end(&builder);
+	jso_builder_object_add_array_start(&builder, "billing_address");
+	jso_builder_array_add_cstr(&builder, "credit_card");
+	jso_builder_array_end(&builder);
+	jso_builder_object_end(&builder);
+	// end root
+	jso_builder_object_end(&builder);
+
+	jso_schema schema;
+	jso_schema_init(&schema);
+	assert_jso_schema_result_success(jso_schema_parse(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// valid property name
+	// jso_builder_object_start(&builder);
+	// jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	// jso_builder_object_add_int(&builder, "credit_card", 5555555555555555);
+	// jso_builder_object_add_cstr(&builder, "billing_address", "555 Debtor's Lane");
+	// assert_jso_schema_validation_success(
+	// 		jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	// jso_builder_clear_all(&builder);
+
+	// valid property name
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	assert_jso_schema_validation_success(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// // invalid if missing a billing address when a credit card set
+	// jso_builder_object_start(&builder);
+	// jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	// jso_builder_object_add_int(&builder, "credit_card", 5555555555555555);
+	// assert_jso_schema_validation_failure(
+	// 		jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	// jso_builder_clear_all(&builder);
+	//
+	// // invalid if missing a credit card when a billing address set
+	// jso_builder_object_start(&builder);
+	// jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	// jso_builder_object_add_cstr(&builder, "billing_address", "555 Debtor's Lane");
+	// assert_jso_schema_validation_failure(
+	// 		jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	// jso_builder_clear_all(&builder);
+
+	jso_schema_clear(&schema);
+}
+
+/* A test for an object type with schema dependencies. */
+static void test_jso_schema_object_dependencies_schema(void **state)
+{
+	(void) state; /* unused */
+
+	jso_schema_validation_result result;
+	jso_builder builder;
+	jso_builder_init(&builder);
+
+	// build schema
+	jso_schema_test_start_schema_object(&builder);
+	jso_builder_object_add_cstr(&builder, "type", "object");
+	// properties
+	jso_builder_object_add_object_start(&builder, "properties");
+	// name property
+	jso_builder_object_add_object_start(&builder, "name");
+	jso_builder_object_add_cstr(&builder, "type", "string");
+	jso_builder_object_end(&builder);
+	// credit_card property
+	jso_builder_object_add_object_start(&builder, "credit_card");
+	jso_builder_object_add_cstr(&builder, "type", "number");
+	jso_builder_object_end(&builder);
+	// end properties
+	jso_builder_object_end(&builder);
+	// required
+	jso_builder_object_add_array_start(&builder, "required");
+	jso_builder_array_add_cstr(&builder, "name");
+	jso_builder_array_end(&builder);
+	// dependencies
+	jso_builder_object_add_object_start(&builder, "dependencies");
+	jso_builder_object_add_object_start(&builder, "credit_card");
+	jso_builder_object_add_object_start(&builder, "properties");
+	jso_builder_object_add_object_start(&builder, "billing_address");
+	jso_builder_object_add_cstr(&builder, "type", "string");
+	jso_builder_object_end(&builder); // billing_address
+	jso_builder_object_end(&builder); // properties
+	jso_builder_object_add_array_start(&builder, "required");
+	jso_builder_array_add_cstr(&builder, "billing_address");
+	jso_builder_array_end(&builder);
+	jso_builder_object_end(&builder); // credit_card
+	jso_builder_object_end(&builder); // dependencies
+	// end root
+	jso_builder_object_end(&builder);
+
+	jso_schema schema;
+	jso_schema_init(&schema);
+	assert_jso_schema_result_success(jso_schema_parse(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// valid property name
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	jso_builder_object_add_int(&builder, "credit_card", 5555555555555555);
+	jso_builder_object_add_cstr(&builder, "billing_address", "555 Debtor's Lane");
+	assert_jso_schema_validation_success(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// valid property name
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	assert_jso_schema_validation_success(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// invalid if missing a billing address when a credit card set
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	jso_builder_object_add_int(&builder, "credit_card", 5555555555555555);
+	assert_jso_schema_validation_failure(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// invalid if missing a credit card when a billing address set
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	jso_builder_object_add_cstr(&builder, "billing_address", "555 Debtor's Lane");
+	assert_jso_schema_validation_success(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	jso_schema_clear(&schema);
+}
+
 /* A test for an object type with size requirements. */
 static void test_jso_schema_object_size(void **state)
 {
@@ -2591,6 +2759,8 @@ int main(void)
 		cmocka_unit_test(test_jso_schema_object_required_props),
 		cmocka_unit_test(test_jso_schema_object_required_props_empty),
 		cmocka_unit_test(test_jso_schema_object_property_names),
+		cmocka_unit_test(test_jso_schema_object_dependencies_array_of_strings),
+		cmocka_unit_test(test_jso_schema_object_dependencies_schema),
 		cmocka_unit_test(test_jso_schema_object_size),
 		cmocka_unit_test(test_jso_schema_object_with_array),
 		cmocka_unit_test(test_jso_schema_array_items_number),

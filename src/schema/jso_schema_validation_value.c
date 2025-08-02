@@ -66,6 +66,9 @@ jso_schema_validation_result jso_schema_validation_value(jso_schema *schema,
 	}
 
 	if (value_type == JSO_SCHEMA_VALUE_TYPE_MIXED) {
+		if (pos->dependency_key != NULL) {
+			return jso_schema_validation_object_dependency_schema(schema, pos, instance);
+		}
 		return JSO_SCHEMA_VALIDATION_VALID;
 	}
 

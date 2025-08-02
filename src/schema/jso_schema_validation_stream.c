@@ -73,6 +73,9 @@ JSO_API jso_rc jso_schema_validation_stream_object_start(jso_schema_validation_s
 			if (jso_schema_validation_composition_check(stack, pos) == JSO_FAILURE) {
 				return JSO_FAILURE;
 			}
+			if (jso_schema_validation_object_conditionals(stack, pos) == JSO_FAILURE) {
+				return JSO_FAILURE;
+			}
 		} else {
 			pos->validation_result = jso_schema_validation_schema_value_type_error(
 					schema, pos, JSO_SCHEMA_VALUE_TYPE_P(value), JSO_SCHEMA_VALUE_TYPE_OBJECT);
@@ -235,34 +238,23 @@ JSO_API jso_rc jso_schema_validation_stream_value(
 	JSO_DBG_SV("VALUE");
 
 	jso_value_type instance_type = jso_virt_value_type(instance);
-	// Array has already added composition during array start so skip it.
-	if (instance_type != JSO_TYPE_ARRAY) {
+	// Array and object have already added composition during array / object start so skip it.
+	if (instance_type != JSO_TYPE_ARRAY && instance_type != JSO_TYPE_OBJECT) {
 		// Iterate through positions to check composition for all types except array and object
 		jso_schema_validation_stack_layer_iterator_start(stack, &iterator);
 		while ((pos = jso_schema_validation_stack_layer_iterator_next(stack, &iterator))) {
 			if (pos->validation_result == JSO_SCHEMA_VALIDATION_VALID) {
-				if (instance_type == JSO_TYPE_OBJECT) {
-					// For object, do the pre validation that adds dependency schemas
-					if (JSO_SCHEMA_VALUE_TYPE_P(pos->current_value) == JSO_SCHEMA_VALUE_TYPE_OBJECT
-							&& jso_schema_validation_object_pre_value(stack, pos)
-									!= JSO_SCHEMA_VALIDATION_VALID) {
-						if (jso_schema_validation_stream_should_terminate(schema, pos)) {
-							return JSO_FAILURE;
-						}
-						jso_schema_validation_result_propagate(schema, pos);
-					}
-				} else if (jso_schema_validation_composition_check(stack, pos) == JSO_FAILURE) {
+				if (jso_schema_validation_composition_check(stack, pos) == JSO_FAILURE) {
 					return JSO_FAILURE;
 				}
 			}
 		}
 	}
 	// Now the reverse iteration is done and each applicable value validated. The reverse order
-	// is done so parent position is validate after children.
+	// is done so the parent position is validated after children.
 	jso_schema_validation_stack_layer_reverse_iterator_start(stack, &iterator);
 	while ((pos = jso_schema_validation_stack_layer_reverse_iterator_next(stack, &iterator))) {
 		if (!pos->is_final_validation_result
-				&& pos->validation_result == JSO_SCHEMA_VALIDATION_VALID
 				&& (pos->composition_type != JSO_SCHEMA_VALIDATION_COMPOSITION_ANY
 						|| !pos->parent->any_of_valid)) {
 			pos->validation_result = jso_schema_validation_value(schema, stack, pos, instance);

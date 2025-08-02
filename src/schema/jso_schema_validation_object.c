@@ -34,6 +34,48 @@
 #include "../jso_re.h"
 #include "../jso.h"
 
+jso_rc jso_schema_validation_object_conditionals(
+		jso_schema_validation_stack *stack, jso_schema_validation_position *pos)
+{
+	jso_string *key;
+	jso_value *val;
+	jso_schema_value_object *objval = JSO_SCHEMA_VALUE_DATA_OBJ_P(pos->current_value);
+
+	if (JSO_SCHEMA_KW_IS_SET(objval->dependencies)) {
+		jso_object *dependencies = JSO_SCHEMA_KEYWORD_DATA_OBJ_SCHEMA_OBJ(objval->dependencies);
+		JSO_OBJECT_FOREACH(dependencies, key, val)
+		{
+			if (JSO_TYPE_P(val) == JSO_TYPE_SCHEMA_VALUE) {
+				jso_schema_validation_position *new_pos
+						= jso_schema_validation_stack_push_basic(stack, JSO_SVVAL_P(val), pos);
+				if (new_pos == NULL) {
+					return JSO_FAILURE;
+				}
+				new_pos->dependency_key = key;
+			}
+		}
+		JSO_OBJECT_FOREACH_END;
+	}
+
+	if (JSO_SCHEMA_KW_IS_SET(objval->dependent_schemas)) {
+		jso_object *dependencies
+				= JSO_SCHEMA_KEYWORD_DATA_OBJ_SCHEMA_OBJ(objval->dependent_schemas);
+		jso_schema_validation_stack_mark(stack);
+		JSO_OBJECT_FOREACH(dependencies, key, val)
+		{
+			jso_schema_validation_position *new_pos
+					= jso_schema_validation_stack_push_basic(stack, JSO_SVVAL_P(val), pos);
+			if (new_pos == NULL) {
+				return JSO_FAILURE;
+			}
+			new_pos->dependency_key = key;
+		}
+		JSO_OBJECT_FOREACH_END;
+	}
+
+	return JSO_SUCCESS;
+}
+
 jso_schema_validation_result jso_schema_validation_object_key(jso_schema_validation_stack *stack,
 		jso_schema_validation_position *pos, jso_virt_string *key)
 {
@@ -181,29 +223,27 @@ jso_schema_validation_result jso_schema_validation_object_key(jso_schema_validat
 	return JSO_SCHEMA_VALIDATION_VALID;
 }
 
-jso_schema_validation_result jso_schema_validation_object_pre_value(
-		jso_schema_validation_stack *stack, jso_schema_validation_position *pos)
+jso_schema_validation_result jso_schema_validation_object_dependency_schema(
+		jso_schema *schema, jso_schema_validation_position *pos, jso_virt_value *instance)
 {
-	jso_schema_value_object *objval = JSO_SCHEMA_VALUE_DATA_OBJ_P(pos->current_value);
+	JSO_ASSERT_NOT_NULL(pos->dependency_key);
 
-	if (JSO_SCHEMA_KW_IS_SET(objval->dependencies)) {
-		jso_string *key;
-		jso_value *val;
-		jso_object *dependencies = JSO_SCHEMA_KEYWORD_DATA_OBJ_SCHEMA_OBJ(objval->dependencies);
-		jso_schema_validation_stack_mark(stack);
-		JSO_OBJECT_FOREACH(dependencies, key, val)
-		{
-			JSO_USE(key);
-			if (JSO_TYPE_P(val) == JSO_TYPE_SCHEMA_VALUE) {
-				if (jso_schema_validation_stack_push_basic(stack, JSO_SVVAL_P(val), pos) == NULL) {
-					return JSO_SCHEMA_VALIDATION_ERROR;
-				}
-			}
-		}
-		JSO_OBJECT_FOREACH_END;
+	if (jso_virt_value_type(instance) != JSO_TYPE_OBJECT) {
+		return pos->validation_result;
 	}
 
-	return JSO_SCHEMA_VALIDATION_VALID;
+	// if the dependency key is set, the value validation matters only if an instance object has
+	// such property so check that first.
+	if (!jso_virt_object_has_str_key(jso_virt_value_object(instance), pos->dependency_key)) {
+		jso_schema_validation_set_final_result(pos, JSO_SCHEMA_VALIDATION_VALID);
+		jso_schema_reset_error(schema);
+		return JSO_SCHEMA_VALIDATION_VALID;
+	}
+	if (pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
+		pos->is_final_validation_result = true;
+	}
+
+	return pos->validation_result;
 }
 
 jso_schema_validation_result jso_schema_validation_object_value(jso_schema *schema,
@@ -217,6 +257,20 @@ jso_schema_validation_result jso_schema_validation_object_value(jso_schema *sche
 
 	jso_schema_value_object *objval = JSO_SCHEMA_VALUE_DATA_OBJ_P(pos->current_value);
 
+	// if the dependency key is set, the value validation matters only if an instance object has
+	// such property so check that first.
+	if (pos->dependency_key != NULL) {
+		if (!jso_virt_object_has_str_key(jso_virt_value_object(instance), pos->dependency_key)) {
+			jso_schema_validation_set_final_result(pos, JSO_SCHEMA_VALIDATION_VALID);
+			jso_schema_reset_error(schema);
+			return JSO_SCHEMA_VALIDATION_VALID;
+		}
+		if (pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
+			pos->is_final_validation_result = true;
+			return pos->validation_result;
+		}
+	}
+
 	if (JSO_SCHEMA_KW_IS_SET(objval->dependencies)) {
 		jso_string *key;
 		jso_value *val;
@@ -229,7 +283,8 @@ jso_schema_validation_result jso_schema_validation_object_value(jso_schema *sche
 				JSO_ARRAY_FOREACH(JSO_ARRVAL_P(val), item)
 				{
 					JSO_ASSERT_EQ(JSO_TYPE_P(item), JSO_TYPE_STRING);
-					if (!jso_virt_object_has_str_key(instance_obj, JSO_STR_P(item))) {
+					if (jso_virt_object_has_str_key(instance_obj, key)
+							&& !jso_virt_object_has_str_key(instance_obj, JSO_STR_P(item))) {
 						jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
 								"Object key %s is required by dependency %s but it is not present",
 								JSO_SVAL_P(item), JSO_STRING_VAL(key));
@@ -240,6 +295,32 @@ jso_schema_validation_result jso_schema_validation_object_value(jso_schema *sche
 				}
 				JSO_ARRAY_FOREACH_END;
 			}
+		}
+		JSO_OBJECT_FOREACH_END;
+	}
+
+	if (JSO_SCHEMA_KW_IS_SET(objval->dependent_required)) {
+		jso_string *key;
+		jso_value *val, *item;
+		jso_object *dependencies
+				= JSO_SCHEMA_KEYWORD_DATA_OBJ_SCHEMA_OBJ(objval->dependent_required);
+		jso_virt_object *instance_obj = jso_virt_value_object(instance);
+		JSO_OBJECT_FOREACH(dependencies, key, val)
+		{
+			JSO_ARRAY_FOREACH(JSO_ARRVAL_P(val), item)
+			{
+				JSO_ASSERT_EQ(JSO_TYPE_P(item), JSO_TYPE_STRING);
+				if (jso_virt_object_has_str_key(instance_obj, key)
+						&& !jso_virt_object_has_str_key(instance_obj, JSO_STR_P(item))) {
+					jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+							"Object key %s is required by required dependent %s but it is not "
+							"present",
+							JSO_SVAL_P(item), JSO_STRING_VAL(key));
+					pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
+					return JSO_SCHEMA_VALIDATION_INVALID;
+				}
+			}
+			JSO_ARRAY_FOREACH_END;
 		}
 		JSO_OBJECT_FOREACH_END;
 	}
