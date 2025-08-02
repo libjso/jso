@@ -1170,13 +1170,13 @@ static void test_jso_schema_object_dependencies_array_of_strings(void **state)
 	jso_builder_clear_all(&builder);
 
 	// valid property name
-	// jso_builder_object_start(&builder);
-	// jso_builder_object_add_cstr(&builder, "name", "John Doe");
-	// jso_builder_object_add_int(&builder, "credit_card", 5555555555555555);
-	// jso_builder_object_add_cstr(&builder, "billing_address", "555 Debtor's Lane");
-	// assert_jso_schema_validation_success(
-	// 		jso_schema_validate(&schema, jso_builder_get_value(&builder)));
-	// jso_builder_clear_all(&builder);
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	jso_builder_object_add_int(&builder, "credit_card", 5555555555555555);
+	jso_builder_object_add_cstr(&builder, "billing_address", "555 Debtor's Lane");
+	assert_jso_schema_validation_success(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
 
 	// valid property name
 	jso_builder_object_start(&builder);
@@ -1185,21 +1185,21 @@ static void test_jso_schema_object_dependencies_array_of_strings(void **state)
 			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
 	jso_builder_clear_all(&builder);
 
-	// // invalid if missing a billing address when a credit card set
-	// jso_builder_object_start(&builder);
-	// jso_builder_object_add_cstr(&builder, "name", "John Doe");
-	// jso_builder_object_add_int(&builder, "credit_card", 5555555555555555);
-	// assert_jso_schema_validation_failure(
-	// 		jso_schema_validate(&schema, jso_builder_get_value(&builder)));
-	// jso_builder_clear_all(&builder);
-	//
-	// // invalid if missing a credit card when a billing address set
-	// jso_builder_object_start(&builder);
-	// jso_builder_object_add_cstr(&builder, "name", "John Doe");
-	// jso_builder_object_add_cstr(&builder, "billing_address", "555 Debtor's Lane");
-	// assert_jso_schema_validation_failure(
-	// 		jso_schema_validate(&schema, jso_builder_get_value(&builder)));
-	// jso_builder_clear_all(&builder);
+	// invalid if missing a billing address when a credit card set
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	jso_builder_object_add_int(&builder, "credit_card", 5555555555555555);
+	assert_jso_schema_validation_failure(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// invalid if missing a credit card when a billing address set
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "name", "John Doe");
+	jso_builder_object_add_cstr(&builder, "billing_address", "555 Debtor's Lane");
+	assert_jso_schema_validation_failure(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
 
 	jso_schema_clear(&schema);
 }
