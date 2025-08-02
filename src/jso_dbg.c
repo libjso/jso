@@ -26,39 +26,31 @@
 #ifdef JSO_DEBUG_ENABLED
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <time.h>
-#include <unistd.h>
 
 typedef struct {
-	int fd;
-	mode_t file_mode;
+	FILE *fp;
 	char component[32];
 	int initialized;
 	int timestamp_enabled;
 } jso_dbg_config_t;
 
-static jso_dbg_config_t jso_g_dbg_config = { .fd = -1,
-	.file_mode = 0644, // default mode
-	.component = { 0 },
-	.initialized = 0,
-	.timestamp_enabled = 0 };
+static jso_dbg_config_t jso_g_dbg_config
+		= { .fp = NULL, .component = { 0 }, .initialized = 0, .timestamp_enabled = 0 };
 
-static char *jso_trim_whitespace(char *str)
+static char *jso_dbg_trim_whitespace(char *str)
 {
 	char *end;
 
-	// Trim leading space
 	while (*str == ' ' || *str == '\t')
 		str++;
 
 	if (*str == 0)
 		return str;
 
-	// Trim trailing space
 	end = str + strlen(str) - 1;
 	while (end > str && (*end == ' ' || *end == '\t'))
 		end--;
@@ -67,17 +59,14 @@ static char *jso_trim_whitespace(char *str)
 	return str;
 }
 
-static int jso_parse_mode(const char *mode_str, mode_t *mode)
+static char *jso_dbg_strdup(const char *s)
 {
-	char *endptr;
-	long parsed_mode = strtol(mode_str, &endptr, 8); // octal base
-
-	if (*endptr != '\0' || parsed_mode < 0 || parsed_mode > 0777) {
-		return -1; // Invalid mode
+	size_t len = strlen(s) + 1;
+	char *copy = malloc(len);
+	if (copy) {
+		memcpy(copy, s, len);
 	}
-
-	*mode = (mode_t) parsed_mode;
-	return 0;
+	return copy;
 }
 
 void jso_dbg_init_from_config(const char *config_string)
@@ -86,31 +75,21 @@ void jso_dbg_init_from_config(const char *config_string)
 		return;
 	}
 
-	// Make a copy of the config string for parsing
-	char *config_copy = strdup(config_string);
+	char *config_copy = jso_dbg_strdup(config_string);
 	if (!config_copy) {
 		return;
 	}
 
 	char *file_path = NULL;
-	mode_t file_mode = 0644; // default
 	char component[32] = { 0 };
 	int timestamp_enabled = 0;
 
-	// Parse the config string
 	char *token = strtok(config_copy, ",");
 	while (token != NULL) {
-		token = jso_trim_whitespace(token);
+		token = jso_dbg_trim_whitespace(token);
 
 		if (strncmp(token, "file:", 5) == 0) {
-			file_path = token + 5; // Skip "file:" prefix
-		} else if (strncmp(token, "mode:", 5) == 0) {
-			char *mode_str = token + 5;
-			if (jso_parse_mode(mode_str, &file_mode) != 0) {
-				fprintf(stderr, "jso_dbg: Invalid mode format: %s\n", mode_str);
-				free(config_copy);
-				return;
-			}
+			file_path = token + 5;
 		} else if (strncmp(token, "component:", 10) == 0) {
 			char *comp_str = token + 10;
 			strncpy(component, comp_str, sizeof(component) - 1);
@@ -120,39 +99,23 @@ void jso_dbg_init_from_config(const char *config_string)
 			if (strcmp(ts_str, "yes") == 0 || strcmp(ts_str, "1") == 0) {
 				timestamp_enabled = 1;
 			}
-		} else {
-			fprintf(stderr, "jso_dbg: Unknown config option: %s\n", token);
 		}
 
 		token = strtok(NULL, ",");
 	}
 
-	// Validate that we have a file path
 	if (!file_path || strlen(file_path) == 0) {
-		fprintf(stderr, "jso_dbg: No file path specified in config\n");
 		free(config_copy);
 		return;
 	}
 
-	// Open the log file
-	int fd = open(file_path, O_WRONLY | O_CREAT | O_APPEND, file_mode);
-	if (fd == -1) {
-		perror("jso_dbg: Failed to open log file");
+	FILE *fp = fopen(file_path, "a");
+	if (!fp) {
 		free(config_copy);
 		return;
 	}
 
-	// If mode was specified, try to set it (might fail if not owner)
-	if (strstr(config_string, "mode:") != NULL) {
-		if (fchmod(fd, file_mode) == -1) {
-			// Not a fatal error, just warn
-			perror("jso_dbg: Warning - failed to set file mode");
-		}
-	}
-
-	// Store configuration
-	jso_g_dbg_config.fd = fd;
-	jso_g_dbg_config.file_mode = file_mode;
+	jso_g_dbg_config.fp = fp;
 	jso_g_dbg_config.timestamp_enabled = timestamp_enabled;
 	if (strlen(component) > 0) {
 		strncpy(jso_g_dbg_config.component, component, sizeof(jso_g_dbg_config.component) - 1);
@@ -161,9 +124,9 @@ void jso_dbg_init_from_config(const char *config_string)
 
 	free(config_copy);
 
-	// Write initialization message
-	dprintf(fd, "[DBG_INIT] Debug logging initialized for component: %s\n",
+	fprintf(fp, "[DBG_INIT] Debug logging initialized for component: %s\n",
 			strlen(component) > 0 ? component : "ALL");
+	fflush(fp);
 }
 
 void jso_dbg_init_from_env(const char *env_name)
@@ -177,42 +140,38 @@ void jso_dbg_init_from_env(const char *env_name)
 
 void jso_dbg_log(const char *type, const char *fmt, ...)
 {
-	if (!jso_g_dbg_config.initialized || jso_g_dbg_config.fd == -1) {
+	if (!jso_g_dbg_config.initialized || !jso_g_dbg_config.fp) {
 		return;
 	}
 
-	// If component filter is set, check if this log type matches
 	if (strlen(jso_g_dbg_config.component) > 0 && strcmp(jso_g_dbg_config.component, type) != 0) {
-		return; // Skip this log entry
+		return;
 	}
 
 	va_list args;
 	va_start(args, fmt);
 
-	// Write timestamp if enabled
 	if (jso_g_dbg_config.timestamp_enabled) {
 		time_t now = time(NULL);
 		struct tm *tm_info = localtime(&now);
-		dprintf(jso_g_dbg_config.fd, "[%04d-%02d-%02d %02d:%02d:%02d] ", tm_info->tm_year + 1900,
+		fprintf(jso_g_dbg_config.fp, "[%04d-%02d-%02d %02d:%02d:%02d] ", tm_info->tm_year + 1900,
 				tm_info->tm_mon + 1, tm_info->tm_mday, tm_info->tm_hour, tm_info->tm_min,
 				tm_info->tm_sec);
 	}
 
-	// Write type
-	dprintf(jso_g_dbg_config.fd, "[%s] ", type);
-
-	// Write the formatted message
-	vdprintf(jso_g_dbg_config.fd, fmt, args);
-	dprintf(jso_g_dbg_config.fd, "\n");
+	fprintf(jso_g_dbg_config.fp, "[%s] ", type);
+	vfprintf(jso_g_dbg_config.fp, fmt, args);
+	fprintf(jso_g_dbg_config.fp, "\n");
+	fflush(jso_g_dbg_config.fp);
 
 	va_end(args);
 }
 
 void jso_dbg_cleanup(void)
 {
-	if (jso_g_dbg_config.initialized && jso_g_dbg_config.fd != -1) {
-		close(jso_g_dbg_config.fd);
-		jso_g_dbg_config.fd = -1;
+	if (jso_g_dbg_config.initialized && jso_g_dbg_config.fp) {
+		fclose(jso_g_dbg_config.fp);
+		jso_g_dbg_config.fp = NULL;
 		jso_g_dbg_config.initialized = 0;
 	}
 }
