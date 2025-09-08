@@ -108,6 +108,12 @@ jso_schema_value *jso_schema_value_init(jso_schema *schema, jso_value *data,
 		JSO_SCHEMA_KW_SET_ARR_OF_SCHEMA_OBJS_NE_EX(schema, data, oneOf, value, value_data, one_of);
 		JSO_SCHEMA_KW_SET_SCHEMA_OBJ(schema, data, not, value, value_data);
 		JSO_SCHEMA_KW_SET_OBJ_OF_SCHEMA_OBJS(schema, data, definitions, value, value_data);
+
+		if (schema->version >= JSO_SCHEMA_VERSION_DRAFT_07) {
+			JSO_SCHEMA_KW_SET_SCHEMA_OBJ_EX(schema, data, if, value, value_data, cond_if);
+			JSO_SCHEMA_KW_SET_SCHEMA_OBJ_EX(schema, data, then, value, value_data, cond_then);
+			JSO_SCHEMA_KW_SET_SCHEMA_OBJ_EX(schema, data, else, value, value_data, cond_else);
+		}
 	}
 
 	return value;

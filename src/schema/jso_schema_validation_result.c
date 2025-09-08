@@ -103,6 +103,26 @@ void jso_schema_validation_result_propagate(jso_schema *schema, jso_schema_valid
 					}
 				}
 				break;
+			case JSO_SCHEMA_VALIDATION_COMPOSITION_IF:
+				parent_pos->cond_if_valid = pos->validation_result == JSO_SCHEMA_VALIDATION_VALID;
+				if (!parent_pos->cond_if_valid) {
+					jso_schema_reset_error(schema);
+				}
+				break;
+			case JSO_SCHEMA_VALIDATION_COMPOSITION_THEN:
+				if (parent_pos->cond_if_valid
+						&& pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
+					jso_schema_validation_result_set_parent_result(
+							parent_pos, pos->validation_result);
+				}
+				break;
+			case JSO_SCHEMA_VALIDATION_COMPOSITION_ELSE:
+				if (!parent_pos->cond_if_valid
+						&& pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
+					jso_schema_validation_result_set_parent_result(
+							parent_pos, pos->validation_result);
+				}
+				break;
 			default:
 				JSO_ASSERT_EQ(pos->composition_type, JSO_SCHEMA_VALIDATION_COMPOSITION_NOT);
 				if (pos->validation_result == JSO_SCHEMA_VALIDATION_VALID) {

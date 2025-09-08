@@ -139,11 +139,30 @@ jso_schema_validation_result jso_schema_validation_composition_push(
 		return JSO_SCHEMA_VALIDATION_ERROR;
 	}
 
+	if (!JSO_SCHEMA_KEYWORD_IS_PRESENT(data->cond_if)) {
+		if (jso_schema_validation_stack_push_composed(stack,
+					JSO_SCHEMA_KEYWORD_DATA_SCHEMA_OBJ(data->cond_if), pos,
+					JSO_SCHEMA_VALIDATION_COMPOSITION_IF)
+				== NULL) {
+			return JSO_SCHEMA_VALIDATION_ERROR;
+		}
+		if (jso_schema_validation_composition_push_keyword_schema_object(
+					stack, pos, &data->cond_then, JSO_SCHEMA_VALIDATION_COMPOSITION_THEN)
+				== JSO_FAILURE) {
+			return JSO_SCHEMA_VALIDATION_ERROR;
+		}
+		if (jso_schema_validation_composition_push_keyword_schema_object(
+					stack, pos, &data->cond_else, JSO_SCHEMA_VALIDATION_COMPOSITION_ELSE)
+				== JSO_FAILURE) {
+			return JSO_SCHEMA_VALIDATION_ERROR;
+		}
+	}
+
 	return JSO_SCHEMA_VALIDATION_VALID;
 }
 
-static const char *type_names[]
-		= { "none", "type any", "type list", "all", "any", "one", "not", "ref" };
+static const char *type_names[] = { "none", "type any", "type list", "all", "any", "one", "not",
+	"if", "then", "else", "ref" };
 
 const char *jso_schema_validation_composition_type_to_string(
 		jso_schema_validation_composition_type type)

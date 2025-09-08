@@ -475,6 +475,12 @@ typedef struct _jso_schema_keyword {
 	jso_schema_keyword one_of; \
 	/** not keyword */ \
 	jso_schema_keyword not; \
+	/** if keyword */ \
+	jso_schema_keyword cond_if; \
+	/** then keyword */ \
+	jso_schema_keyword cond_then; \
+	/** else keyword */ \
+	jso_schema_keyword cond_else; \
 	/** definitions keyword */ \
 	jso_schema_keyword definitions; \
 	/** title keyword */ \
@@ -599,12 +605,6 @@ typedef struct _jso_schema_value_object {
 	jso_schema_keyword dependent_required;
 	/** dependentSchemas keyword */
 	jso_schema_keyword dependent_schemas;
-	/** if keyword */
-	jso_schema_keyword cond_if;
-	/** then keyword */
-	jso_schema_keyword cond_then;
-	/** else keyword */
-	jso_schema_keyword cond_else;
 	/** propertyNames keyword */
 	jso_schema_keyword property_names;
 } jso_schema_value_object;
@@ -972,6 +972,7 @@ typedef enum _jso_schema_error_type {
 	JSO_SCHEMA_ERROR_URI_INVALID,
 	JSO_SCHEMA_ERROR_VALIDATION_ALLOC,
 	JSO_SCHEMA_ERROR_VALIDATION_COMPOSITION,
+	JSO_SCHEMA_ERROR_VALIDATION_CONDITIONAL,
 	JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
 	JSO_SCHEMA_ERROR_VALIDATION_TYPE,
 	JSO_SCHEMA_ERROR_VALIDATION_FALSE,
@@ -1236,6 +1237,9 @@ typedef enum _jso_schema_validation_composition_type {
 	JSO_SCHEMA_VALIDATION_COMPOSITION_ANY,
 	JSO_SCHEMA_VALIDATION_COMPOSITION_ONE,
 	JSO_SCHEMA_VALIDATION_COMPOSITION_NOT,
+	JSO_SCHEMA_VALIDATION_COMPOSITION_IF,
+	JSO_SCHEMA_VALIDATION_COMPOSITION_THEN,
+	JSO_SCHEMA_VALIDATION_COMPOSITION_ELSE,
 	JSO_SCHEMA_VALIDATION_COMPOSITION_REF,
 } jso_schema_validation_composition_type;
 
@@ -1288,8 +1292,10 @@ struct _jso_schema_validation_position {
 	jso_uint32 any_of_valid : 1;
 	/** check whether any selected type is valid which is used for type list */
 	jso_uint32 type_valid : 1;
+	/** check whether conditional valid */
+	jso_uint32 cond_if_valid : 1;
 	/** reserved for other flags */
-	jso_uint32 reserved : 29;
+	jso_uint32 reserved : 28;
 	/** the position stack depth */
 	jso_uint32 depth;
 };
