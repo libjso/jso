@@ -139,7 +139,7 @@ jso_schema_validation_result jso_schema_validation_composition_push(
 		return JSO_SCHEMA_VALIDATION_ERROR;
 	}
 
-	if (!JSO_SCHEMA_KEYWORD_IS_PRESENT(data->cond_if)) {
+	if (JSO_SCHEMA_KEYWORD_IS_PRESENT(data->cond_if)) {
 		if (jso_schema_validation_stack_push_composed(stack,
 					JSO_SCHEMA_KEYWORD_DATA_SCHEMA_OBJ(data->cond_if), pos,
 					JSO_SCHEMA_VALIDATION_COMPOSITION_IF)
