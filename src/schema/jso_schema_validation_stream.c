@@ -73,7 +73,8 @@ JSO_API jso_rc jso_schema_validation_stream_object_start(jso_schema_validation_s
 			if (jso_schema_validation_composition_check(stack, pos) == JSO_FAILURE) {
 				return JSO_FAILURE;
 			}
-			if (jso_schema_validation_object_conditionals(stack, pos) == JSO_FAILURE) {
+			if (JSO_SCHEMA_VALUE_TYPE_P(value) == JSO_SCHEMA_VALUE_TYPE_OBJECT
+					&& jso_schema_validation_object_dependencies(stack, pos) == JSO_FAILURE) {
 				return JSO_FAILURE;
 			}
 		} else {

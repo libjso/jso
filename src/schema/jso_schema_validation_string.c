@@ -33,6 +33,7 @@
 jso_schema_validation_result jso_schema_validation_string_value_str(
 		jso_schema *schema, jso_schema_validation_position *pos, jso_virt_string *instance_str)
 {
+	JSO_ASSERT_EQ(JSO_SCHEMA_VALUE_TYPE_STRING, JSO_SCHEMA_VALUE_TYPE_P(pos->current_value));
 	jso_schema_value_string *strval = JSO_SCHEMA_VALUE_DATA_STR_P(pos->current_value);
 
 	if (JSO_SCHEMA_KW_IS_SET(strval->min_length)) {

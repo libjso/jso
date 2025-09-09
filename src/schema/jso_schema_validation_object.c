@@ -34,11 +34,13 @@
 #include "../jso_re.h"
 #include "../jso.h"
 
-jso_rc jso_schema_validation_object_conditionals(
+jso_rc jso_schema_validation_object_dependencies(
 		jso_schema_validation_stack *stack, jso_schema_validation_position *pos)
 {
 	jso_string *key;
 	jso_value *val;
+
+	JSO_ASSERT_EQ(JSO_SCHEMA_VALUE_TYPE_OBJECT, JSO_SCHEMA_VALUE_TYPE_P(pos->current_value));
 	jso_schema_value_object *objval = JSO_SCHEMA_VALUE_DATA_OBJ_P(pos->current_value);
 
 	if (JSO_SCHEMA_KW_IS_SET(objval->dependencies)) {
@@ -85,6 +87,7 @@ jso_schema_validation_result jso_schema_validation_object_key(jso_schema_validat
 
 	jso_schema *schema = stack->root_schema;
 	jso_schema_value *value = pos->current_value;
+	JSO_ASSERT_EQ(JSO_SCHEMA_VALUE_TYPE_OBJECT, JSO_SCHEMA_VALUE_TYPE_P(value));
 	jso_schema_value_object *objval = JSO_SCHEMA_VALUE_DATA_OBJ_P(value);
 
 	if (JSO_SCHEMA_KW_IS_SET(objval->max_properties)) {
@@ -255,6 +258,7 @@ jso_schema_validation_result jso_schema_validation_object_value(jso_schema *sche
 				schema, pos, JSO_TYPE_OBJECT, jso_virt_value_type(instance));
 	}
 
+	JSO_ASSERT_EQ(JSO_SCHEMA_VALUE_TYPE_OBJECT, JSO_SCHEMA_VALUE_TYPE_P(pos->current_value));
 	jso_schema_value_object *objval = JSO_SCHEMA_VALUE_DATA_OBJ_P(pos->current_value);
 
 	// if the dependency key is set, the value validation matters only if an instance object has

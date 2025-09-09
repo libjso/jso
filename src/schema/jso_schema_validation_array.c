@@ -60,6 +60,7 @@ jso_schema_validation_result jso_schema_validation_array_start(
 		jso_schema_validation_stack *stack, jso_schema_validation_position *pos)
 {
 	jso_schema_value *value = pos->current_value;
+	JSO_ASSERT_EQ(JSO_SCHEMA_VALUE_TYPE_ARRAY, JSO_SCHEMA_VALUE_TYPE_P(value));
 	jso_schema_value_array *arrval = JSO_SCHEMA_VALUE_DATA_ARR_P(value);
 
 	if (pos->is_final_validation_result) {
@@ -87,6 +88,7 @@ jso_schema_validation_result jso_schema_validation_array_append(
 {
 	jso_schema *schema = stack->root_schema;
 	jso_schema_value *value = pos->current_value;
+	JSO_ASSERT_EQ(JSO_SCHEMA_VALUE_TYPE_ARRAY, JSO_SCHEMA_VALUE_TYPE_P(value));
 	jso_schema_value_array *arrval = JSO_SCHEMA_VALUE_DATA_ARR_P(value);
 
 	if (pos->is_final_validation_result) {
@@ -146,6 +148,7 @@ jso_schema_validation_result jso_schema_validation_array_value(jso_schema *schem
 	}
 
 	jso_schema_value_array *arrval = JSO_SCHEMA_VALUE_DATA_ARR_P(pos->current_value);
+	JSO_ASSERT_EQ(JSO_SCHEMA_VALUE_TYPE_ARRAY, JSO_SCHEMA_VALUE_TYPE_P(pos->current_value));
 
 	if (JSO_SCHEMA_KW_IS_SET(arrval->min_items)) {
 		jso_uint kw_uval = JSO_SCHEMA_KEYWORD_DATA_UINT(arrval->min_items);

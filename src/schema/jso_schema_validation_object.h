@@ -31,7 +31,7 @@
 
 #include "../jso_schema.h"
 
-jso_rc jso_schema_validation_object_conditionals(
+jso_rc jso_schema_validation_object_dependencies(
 		jso_schema_validation_stack *stack, jso_schema_validation_position *pos);
 
 jso_schema_validation_result jso_schema_validation_object_key(jso_schema_validation_stack *stack,
