@@ -58,8 +58,6 @@
 
 ### Parsing
 
-- draft 7 setup (constant and so on)
-- if / then / else keywords
 - default support
 - metadata api so things like description, title, examples, $comment and others can be somehow used
 - definitions ($defs) pre-parsing to speed up dynamic refs
@@ -78,11 +76,19 @@
 
 ### Validation
 
-- add some debug logging to be able to see the validation steps without using a debugger
-- validation for dependencies with a string array (dependentRequired in 2019-09)
-  - this should be in object value
-- special composition for dependencies with a schema type (dependentSchema in 2019-09)
-  - this should use implication logic with `(not { type = object, required = [_key_] }) or [_schema_value_]` 
+- default keyword validation and test
+  - double check that it really works with if / then / else test
+- error collection for multiple errors and related helper functions
+  - this is important for getting correct errors in if / then / else (see TODO in jso_schema_validation_result_propagate) 
+- advance test for if / then / else
+- advance test for dependencies
+- add initial integration test for draft 2019-09
+- add and test full support for dependentSchemas and dependentRequired
+- add support for unevaluatedProperties
+- add support for unevaluatedItems
+- add support for maxContains
+- look into $anchor support and other core vocabulary changes for 2019-09
+- support for draft 2020-12
 - early exit for arrays and object
 - propagation should happen only in reverse iteration
   - add special tests for this

@@ -104,23 +104,48 @@ void jso_schema_validation_result_propagate(jso_schema *schema, jso_schema_valid
 				}
 				break;
 			case JSO_SCHEMA_VALIDATION_COMPOSITION_IF:
+				parent_pos->cond_if_validated = true;
 				parent_pos->cond_if_valid = pos->validation_result == JSO_SCHEMA_VALIDATION_VALID;
-				if (!parent_pos->cond_if_valid) {
-					jso_schema_reset_error(schema);
+				if (parent_pos->cond_if_valid) {
+					if (parent_pos->cond_then_validated && !parent_pos->cond_then_valid) {
+						jso_schema_validation_result_set_parent_result(
+								parent_pos, JSO_SCHEMA_VALIDATION_INVALID);
+					} else if (parent_pos->cond_else_validated && !parent_pos->cond_else_valid) {
+						jso_schema_reset_error(schema);
+					}
+				} else {
+					if (parent_pos->cond_else_validated && !parent_pos->cond_else_valid) {
+						// TODO: this needs error handling rewrite because if both `then` and `else`
+						// fail, then this will contain `then` error
+						jso_schema_validation_result_set_parent_result(
+								parent_pos, JSO_SCHEMA_VALIDATION_INVALID);
+					} else if (parent_pos->cond_then_validated && !parent_pos->cond_then_valid) {
+						jso_schema_reset_error(schema);
+					}
 				}
 				break;
 			case JSO_SCHEMA_VALIDATION_COMPOSITION_THEN:
-				if (parent_pos->cond_if_valid
-						&& pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
-					jso_schema_validation_result_set_parent_result(
-							parent_pos, pos->validation_result);
+				parent_pos->cond_then_validated = true;
+				parent_pos->cond_then_valid = pos->validation_result == JSO_SCHEMA_VALIDATION_VALID;
+				if (parent_pos->cond_if_validated && !parent_pos->cond_then_valid) {
+					if (parent_pos->cond_if_valid) {
+						jso_schema_validation_result_set_parent_result(
+								parent_pos, pos->validation_result);
+					} else {
+						jso_schema_reset_error(schema);
+					}
 				}
 				break;
 			case JSO_SCHEMA_VALIDATION_COMPOSITION_ELSE:
-				if (!parent_pos->cond_if_valid
-						&& pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
-					jso_schema_validation_result_set_parent_result(
-							parent_pos, pos->validation_result);
+				parent_pos->cond_else_validated = true;
+				parent_pos->cond_else_valid = pos->validation_result == JSO_SCHEMA_VALIDATION_VALID;
+				if (parent_pos->cond_if_validated && !parent_pos->cond_else_valid) {
+					if (!parent_pos->cond_if_valid) {
+						jso_schema_validation_result_set_parent_result(
+								parent_pos, pos->validation_result);
+					} else {
+						jso_schema_reset_error(schema);
+					}
 				}
 				break;
 			default:

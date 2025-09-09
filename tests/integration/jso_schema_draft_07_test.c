@@ -78,6 +78,7 @@ int main(void)
 		cmocka_unit_test(test_jso_schema_root_true),
 		cmocka_unit_test(test_jso_schema_root_false),
 		cmocka_unit_test(test_jso_schema_refs_with_defs),
+		cmocka_unit_test(test_jso_schema_if_then_else_basic),
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);

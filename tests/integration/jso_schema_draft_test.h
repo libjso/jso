@@ -2751,3 +2751,102 @@ void test_jso_schema_refs_with_defs(void **state)
 
 	jso_schema_clear(&schema);
 }
+
+/* A test for a basic schema with $refs and definitions. */
+void test_jso_schema_if_then_else_basic(void **state)
+{
+	(void) state; /* unused */
+
+	jso_schema_validation_result result;
+	jso_builder builder;
+	jso_builder_init(&builder);
+
+	// build schema
+	jso_schema_test_start_schema_object(&builder);
+	jso_builder_object_add_cstr(&builder, "type", "object");
+	jso_builder_object_add_object_start(&builder, "properties");
+	jso_builder_object_add_object_start(&builder, "street_address");
+	jso_builder_object_add_cstr(&builder, "type", "string");
+	jso_builder_object_end(&builder); // street_address
+	jso_builder_object_add_object_start(&builder, "country");
+	jso_builder_object_add_cstr(&builder, "default", "United States of America");
+	jso_builder_object_add_array_start(&builder, "enum");
+	jso_builder_array_add_cstr(&builder, "United States of America");
+	jso_builder_array_add_cstr(&builder, "Canada");
+	jso_builder_array_end(&builder); // enum
+	jso_builder_object_end(&builder); // country
+	jso_builder_object_end(&builder); // properties
+	jso_builder_object_add_object_start(&builder, "if");
+	jso_builder_object_add_object_start(&builder, "properties");
+	jso_builder_object_add_object_start(&builder, "country");
+	jso_builder_object_add_cstr(&builder, "const", "United States of America");
+	jso_builder_object_end(&builder); // country
+	jso_builder_object_end(&builder); // properties
+	jso_builder_object_end(&builder); // if
+	jso_builder_object_add_object_start(&builder, "then");
+	jso_builder_object_add_object_start(&builder, "properties");
+	jso_builder_object_add_object_start(&builder, "postal_code");
+	jso_builder_object_add_cstr(&builder, "pattern", "[0-9]{5}(-[0-9]{4})?");
+	jso_builder_object_end(&builder); // postal_code
+	jso_builder_object_end(&builder); // properties
+	jso_builder_object_end(&builder); // then
+	jso_builder_object_add_object_start(&builder, "else");
+	jso_builder_object_add_object_start(&builder, "properties");
+	jso_builder_object_add_object_start(&builder, "postal_code");
+	jso_builder_object_add_cstr(&builder, "pattern", "[A-Z][0-9][A-Z] [0-9][A-Z][0-9]");
+	jso_builder_object_end(&builder); // postal_code
+	jso_builder_object_end(&builder); // properties
+	jso_builder_object_end(&builder); // else
+	jso_builder_object_end(&builder); // root
+
+	jso_schema schema;
+	jso_schema_init(&schema);
+	assert_jso_schema_result_success(jso_schema_parse(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// This is testing the success if/then part
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "street_address", "1600 Pennsylvania Avenue NW");
+	jso_builder_object_add_cstr(&builder, "country", "United States of America");
+	jso_builder_object_add_cstr(&builder, "postal_code", "20500");
+	assert_jso_schema_validation_success(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// This is testing a default keyword
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "street_address", "1600 Pennsylvania Avenue NW");
+	jso_builder_object_add_cstr(&builder, "postal_code", "20500");
+	assert_jso_schema_validation_success(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// This is testing the success in if/else part
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "street_address", "24 Sussex Drive");
+	jso_builder_object_add_cstr(&builder, "country", "Canada");
+	jso_builder_object_add_cstr(&builder, "postal_code", "K1M 1M4");
+	assert_jso_schema_validation_success(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// This is testing the failure in if/then part
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "street_address", "1600 Pennsylvania Avenue NW");
+	jso_builder_object_add_cstr(&builder, "country", "United States of America");
+	jso_builder_object_add_cstr(&builder, "postal_code", "K1M 1M4");
+	assert_jso_schema_validation_failure(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	// This is testing the failure in if/else part
+	jso_builder_object_start(&builder);
+	jso_builder_object_add_cstr(&builder, "street_address", "24 Sussex Drive");
+	jso_builder_object_add_cstr(&builder, "country", "Canada");
+	jso_builder_object_add_cstr(&builder, "postal_code", "10000");
+	assert_jso_schema_validation_failure(
+			jso_schema_validate(&schema, jso_builder_get_value(&builder)));
+	jso_builder_clear_all(&builder);
+
+	jso_schema_clear(&schema);
+}

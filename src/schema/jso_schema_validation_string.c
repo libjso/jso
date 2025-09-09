@@ -65,8 +65,8 @@ jso_schema_validation_result jso_schema_validation_string_value_str(
 		jso_re_match_data_free(match_data);
 		if (match_result <= 0) {
 			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
-					"String pattern %s does not match value %s", JSO_RE_CODE_PATTERN(code),
-					jso_virt_string_val(instance_str));
+					"String pattern %s does not match value %s",
+					JSO_STRING_VAL(JSO_RE_CODE_PATTERN(code)), jso_virt_string_val(instance_str));
 			return JSO_SCHEMA_VALIDATION_INVALID;
 		}
 	}

@@ -1302,10 +1302,20 @@ struct _jso_schema_validation_position {
 	jso_uint32 any_of_valid : 1;
 	/** check whether any selected type is valid which is used for type list */
 	jso_uint32 type_valid : 1;
-	/** check whether conditional valid */
+	/** check whether the if conditional subschema valid */
 	jso_uint32 cond_if_valid : 1;
+	/** info whether the if conditional has been validated */
+	jso_uint32 cond_if_validated : 1;
+	/** check whether the then conditional subschema valid */
+	jso_uint32 cond_then_valid : 1;
+	/** info whether the then conditional has been validated */
+	jso_uint32 cond_then_validated : 1;
+	/** check whether the else conditional subschema valid */
+	jso_uint32 cond_else_valid : 1;
+	/** info whether the else conditional has been validated */
+	jso_uint32 cond_else_validated : 1;
 	/** reserved for other flags */
-	jso_uint32 reserved : 28;
+	jso_uint32 reserved : 23;
 	/** the position stack depth */
 	jso_uint32 depth;
 };
