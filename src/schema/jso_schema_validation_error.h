@@ -31,6 +31,19 @@
 
 #include "../jso_schema.h"
 
+jso_schema_validation_result jso_schema_validation_error_set(jso_schema *schema,
+		jso_schema_validation_position *pos, jso_schema_error_type type, const char *message);
+
+jso_schema_validation_result jso_schema_validation_error_format(jso_schema *schema,
+		jso_schema_validation_position *pos, jso_schema_error_type type, const char *format, ...);
+
+jso_rc jso_schema_validation_error_propagate_to_parent(
+		jso_schema_validation_position *pos, jso_schema_validation_position *parent_pos);
+
+void jso_schema_validation_errors_free(jso_schema_validation_position_errors *errors);
+
+void jso_schema_validation_position_clear_errors(jso_schema_validation_position *pos);
+
 jso_schema_validation_result jso_schema_validation_value_type_error_ex(jso_schema *schema,
 		jso_schema_validation_position *pos, jso_value_type expected,
 		jso_value_type expected_alternative, jso_value_type actual);

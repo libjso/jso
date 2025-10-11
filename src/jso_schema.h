@@ -984,6 +984,7 @@ typedef enum _jso_schema_error_type {
 	JSO_SCHEMA_ERROR_VALIDATION_COMPOSITION,
 	JSO_SCHEMA_ERROR_VALIDATION_CONDITIONAL,
 	JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+	JSO_SCHEMA_ERROR_VALIDATION_PROPAGATION,
 	JSO_SCHEMA_ERROR_VALIDATION_TYPE,
 	JSO_SCHEMA_ERROR_VALIDATION_FALSE,
 	JSO_SCHEMA_ERROR_VALUE_ALLOC,
@@ -1216,6 +1217,36 @@ struct _jso_schema_reference {
  */
 #define JSO_SCHEMA_REFERENCE_RESULT(_ref) (_ref)->result
 
+typedef enum _jso_schema_validation_position_error_location_type {
+	JSO_SCHEMA_VALIDATION_POSITION_ERROR_LOCATION_OBJECT,
+	JSO_SCHEMA_VALIDATION_POSITION_ERROR_LOCATION_ARRAY
+} jso_schema_validation_position_error_location_type;
+
+typedef struct _jso_schema_validation_position_error_location {
+	jso_schema_validation_position_error_location_type type;
+	union {
+		jso_string *key;
+		size_t index;
+	};
+} jso_schema_validation_position_error_location;
+
+typedef struct _jso_schema_validation_position_error jso_schema_validation_position_error;
+
+struct _jso_schema_validation_position_error {
+	jso_schema_validation_position_error *next;
+	jso_schema_validation_position_error_location *location;
+	jso_uint32 location_size;
+	jso_uint32 location_capacity;
+	jso_schema_error_type error_type;
+	char *message;
+};
+
+typedef struct _jso_schema_validation_position_errors {
+	jso_schema_validation_position_error *head;
+	jso_schema_validation_position_error *tail;
+	jso_uint32 count;
+} jso_schema_validation_position_errors;
+
 /**
  * @brief Schema validation result
  */
@@ -1292,6 +1323,8 @@ struct _jso_schema_validation_position {
 	jso_virt_string *object_key;
 	/** dependency key */
 	jso_string *dependency_key;
+	/** position errors */
+	jso_schema_validation_position_errors *errors;
 	/** start of the current layer */
 	size_t layer_start;
 	/** count of elements for array / object */

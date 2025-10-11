@@ -22,6 +22,7 @@
  */
 
 #include "jso_schema_validation_stack.h"
+#include "jso_schema_validation_error.h"
 
 #include "jso_schema_error.h"
 
@@ -47,6 +48,13 @@ jso_rc jso_schema_validation_stack_init(
 
 void jso_schema_validation_stack_clear(jso_schema_validation_stack *stack)
 {
+	// Free all errors in all positions before freeing the positions array
+	for (size_t i = 0; i < stack->size; i++) {
+		if (stack->positions[i].errors != NULL) {
+			jso_schema_validation_errors_free(stack->positions[i].errors);
+			stack->positions[i].errors = NULL;
+		}
+	}
 	jso_free(stack->positions);
 }
 
@@ -67,7 +75,7 @@ static jso_rc jso_schema_validation_stack_resize_if_needed(jso_schema_validation
 	size_t new_capacity = capacity * 2;
 	jso_schema_validation_position *positions
 			= jso_realloc(stack->positions, sizeof(jso_schema_validation_position) * new_capacity);
-	if (stack->positions == NULL) {
+	if (positions == NULL) {
 		jso_schema_error_format(stack->root_schema, JSO_SCHEMA_ERROR_STACK_ALLOC,
 				"Re-allocating stack positions failed");
 		return JSO_FAILURE;
@@ -151,11 +159,24 @@ jso_schema_validation_position *jso_schema_validation_stack_pop(jso_schema_valid
 		return NULL;
 	}
 
-	return &stack->positions[--stack->size];
+	jso_schema_validation_position *pos = &stack->positions[--stack->size];
+
+	// Clean up errors when popping - they should have been propagated already
+	if (pos->errors != NULL) {
+		jso_schema_validation_position_clear_errors(pos);
+	}
+
+	return pos;
 }
 
 void jso_schema_validation_stack_reset(jso_schema_validation_stack *stack)
 {
+	// Free errors in positions that will be discarded
+	for (size_t i = stack->mark; i < stack->size; i++) {
+		if (stack->positions[i].errors != NULL) {
+			jso_schema_validation_position_clear_errors(&stack->positions[i]);
+		}
+	}
 	stack->size = stack->mark;
 }
 
@@ -212,10 +233,25 @@ jso_schema_validation_position *jso_schema_validation_stack_layer_reverse_iterat
 void jso_schema_validation_stack_layer_remove(jso_schema_validation_stack *stack)
 {
 	if (stack->last_separator != NULL) {
-		stack->size = stack->last_separator - stack->positions;
+		size_t new_size = stack->last_separator - stack->positions;
+
+		// Free errors in positions that will be removed
+		for (size_t i = new_size; i < stack->size; i++) {
+			if (stack->positions[i].errors != NULL) {
+				jso_schema_validation_position_clear_errors(&stack->positions[i]);
+			}
+		}
+
+		stack->size = new_size;
 		stack->depth--;
 		stack->last_separator = stack->last_separator->parent;
 	} else {
+		// Free all errors when removing the entire stack
+		for (size_t i = 0; i < stack->size; i++) {
+			if (stack->positions[i].errors != NULL) {
+				jso_schema_validation_position_clear_errors(&stack->positions[i]);
+			}
+		}
 		stack->size = stack->depth = 0;
 	}
 }
@@ -233,5 +269,10 @@ void jso_schema_validation_stack_layer_reset_positions(jso_schema_validation_sta
 		pos->one_of_valid = 0;
 		pos->any_of_valid = 0;
 		pos->type_valid = 0;
+
+		// Clear any errors when resetting positions
+		if (pos->errors != NULL) {
+			jso_schema_validation_position_clear_errors(pos);
+		}
 	}
 }
