@@ -55,11 +55,11 @@ static int jso_io_memory_printf(jso_io *io, const char *format, ...)
 	size_t not_used = JSO_IO_SIZE(io) - (size_t) (JSO_IO_LIMIT(io) - JSO_IO_BUFFER(io));
 
 	va_start(args, format);
-	rsize = vsnprintf((char *) JSO_IO_LIMIT(io), not_used, format, args);
+	rsize = jso_vsnprintf((char *) JSO_IO_LIMIT(io), not_used, format, args);
 	va_end(args);
 	if (rsize > not_used) {
 		jso_io_buffer_alloc(io, rsize + 1);
-		return vsnprintf((char *) JSO_IO_LIMIT(io), rsize, format, args);
+		return jso_vsnprintf((char *) JSO_IO_LIMIT(io), rsize, format, args);
 	}
 	JSO_IO_LIMIT(io) += rsize;
 

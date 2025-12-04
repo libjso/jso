@@ -31,28 +31,79 @@
 
 #include "../jso_schema.h"
 
-jso_schema_validation_result jso_schema_validation_error_set(jso_schema *schema,
-		jso_schema_validation_position *pos, jso_schema_error_type type, const char *message);
+#include <stdarg.h>
 
-jso_schema_validation_result jso_schema_validation_error_format(jso_schema *schema,
-		jso_schema_validation_position *pos, jso_schema_error_type type, const char *format, ...);
+jso_schema_validation_result jso_schema_validation_error_set(jso_schema_validation_position *pos,
+		jso_schema_error_type type, const char *keyword, const char *message);
 
-jso_rc jso_schema_validation_error_propagate_to_parent(
-		jso_schema_validation_position *pos, jso_schema_validation_position *parent_pos);
+jso_schema_validation_result jso_schema_validation_error_vformat(
+		jso_schema_validation_position *pos, jso_schema_error_type type, const char *keyword,
+		const char *format, va_list args);
+
+jso_schema_validation_result jso_schema_validation_error_format(jso_schema_validation_position *pos,
+		jso_schema_error_type type, const char *keyword, const char *format, ...);
+
+jso_rc jso_schema_validation_error_propagate_to_parent(jso_schema_validation_position *pos,
+		jso_schema_validation_position *parent_pos, jso_uint32 branch);
 
 void jso_schema_validation_errors_free(jso_schema_validation_position_errors *errors);
 
+void jso_schema_validation_errors_branch_free(
+		jso_schema_validation_position_errors *errors, jso_uint32 branch);
+
 void jso_schema_validation_position_clear_errors(jso_schema_validation_position *pos);
 
-jso_schema_validation_result jso_schema_validation_value_type_error_ex(jso_schema *schema,
+jso_schema_validation_result jso_schema_validation_value_type_error_ex(
 		jso_schema_validation_position *pos, jso_value_type expected,
 		jso_value_type expected_alternative, jso_value_type actual);
 
-jso_schema_validation_result jso_schema_validation_value_type_error(jso_schema *schema,
+jso_schema_validation_result jso_schema_validation_value_type_error(
 		jso_schema_validation_position *pos, jso_value_type expected, jso_value_type actual);
 
-jso_schema_validation_result jso_schema_validation_schema_value_type_error(jso_schema *schema,
+jso_schema_validation_result jso_schema_validation_schema_value_type_error(
 		jso_schema_validation_position *pos, jso_schema_value_type expected,
 		jso_schema_value_type actual);
+
+static inline jso_schema_validation_result jso_schema_validation_error_keyword_format(
+		jso_schema_validation_position *pos, const char *keyword, const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	jso_schema_validation_result res = jso_schema_validation_error_vformat(
+			pos, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD, keyword, format, args);
+	va_end(args);
+	return res;
+}
+
+static inline jso_schema_validation_result jso_schema_validation_error_keyword_set(
+		jso_schema_validation_position *pos, const char *keyword, const char *message)
+{
+	return jso_schema_validation_error_set(
+			pos, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD, keyword, message);
+}
+
+static inline jso_schema_validation_result jso_schema_validation_error_type_format(
+		jso_schema_validation_position *pos, const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	jso_schema_validation_result res = jso_schema_validation_error_vformat(
+			pos, JSO_SCHEMA_ERROR_VALIDATION_TYPE, "type", format, args);
+	va_end(args);
+	return res;
+}
+
+static inline jso_schema_validation_result jso_schema_validation_error_type_set(
+		jso_schema_validation_position *pos, const char *message)
+{
+	return jso_schema_validation_error_set(pos, JSO_SCHEMA_ERROR_VALIDATION_TYPE, "type", message);
+}
+
+static inline jso_schema_validation_result jso_schema_validation_error_composition_set(
+		jso_schema_validation_position *pos, const char *keyword, const char *message)
+{
+	return jso_schema_validation_error_set(
+			pos, JSO_SCHEMA_ERROR_VALIDATION_COMPOSITION, keyword, message);
+}
 
 #endif /* JSO_SCHEMA_VALIDATION_ERROR_H */

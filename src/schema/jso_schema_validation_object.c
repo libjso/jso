@@ -95,12 +95,11 @@ jso_schema_validation_result jso_schema_validation_object_key(jso_schema_validat
 		size_t objlen = pos->count;
 		if (objlen > kw_uval) {
 			jso_schema_validation_set_final_result(pos, JSO_SCHEMA_VALIDATION_INVALID);
-			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
+			return jso_schema_validation_error_keyword_format(pos, "max_properties",
 					"Object number of properties is %zu which is greater than maximum number of "
 					"properties %lu",
 					objlen, kw_uval);
-			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-			return JSO_SCHEMA_VALIDATION_INVALID;
 		}
 	}
 
@@ -116,11 +115,11 @@ jso_schema_validation_result jso_schema_validation_object_key(jso_schema_validat
 		jso_schema_validation_stack_layer_iterator_start(stack, &iterator);
 		while ((key_pos = jso_schema_validation_stack_layer_iterator_next(stack, &iterator))) {
 			if (jso_schema_validation_composition_check(stack, key_pos) == JSO_FAILURE) {
-				return JSO_FAILURE;
+				return JSO_SCHEMA_VALIDATION_ERROR;
 			}
 		}
 		// Now the reverse iteration is done and each applicable value validated. The reverse order
-		// is done so parent position is validate after children.
+		// is done so the parent position is validated after children.
 		jso_schema_validation_stack_layer_reverse_iterator_start(stack, &iterator);
 		while ((key_pos
 				= jso_schema_validation_stack_layer_reverse_iterator_next(stack, &iterator))) {
@@ -132,10 +131,12 @@ jso_schema_validation_result jso_schema_validation_object_key(jso_schema_validat
 					key_pos->validation_result
 							= jso_schema_validation_string_value_str(schema, key_pos, key);
 					if (jso_schema_validation_stream_should_terminate(schema, key_pos)) {
-						return JSO_FAILURE;
+						return JSO_SCHEMA_VALIDATION_ERROR;
 					}
 				}
-				jso_schema_validation_result_propagate(schema, key_pos);
+				if (jso_schema_validation_result_propagate(schema, key_pos) == JSO_FAILURE) {
+					return JSO_SCHEMA_VALIDATION_ERROR;
+				}
 			}
 		}
 
@@ -149,11 +150,10 @@ jso_schema_validation_result jso_schema_validation_object_key(jso_schema_validat
 
 		if (property_names_invalid) {
 			jso_schema_validation_set_final_result(pos, JSO_SCHEMA_VALIDATION_INVALID);
-			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
+			return jso_schema_validation_error_keyword_format(pos, "property_names",
 					"Object key %s does not validate against propertyNames schema",
 					jso_virt_string_val(key));
-			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-			return JSO_SCHEMA_VALIDATION_INVALID;
 		}
 	}
 
@@ -212,13 +212,12 @@ jso_schema_validation_result jso_schema_validation_object_key(jso_schema_validat
 					JSO_SCHEMA_KEYWORD_TYPE_BOOLEAN);
 			if (!JSO_SCHEMA_KEYWORD_DATA_BOOL(objval->additional_properties)) {
 				jso_schema_validation_set_final_result(pos, JSO_SCHEMA_VALIDATION_INVALID);
-				jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+				pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
+				return jso_schema_validation_error_keyword_format(pos, "additional_properties",
 						"Object does not allow additional properties but added property with key "
 						"%s which "
 						"is is not found in properties or matches any pattern property",
 						jso_virt_string_val(key));
-				pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-				return JSO_SCHEMA_VALIDATION_INVALID;
 			}
 		}
 	}
@@ -255,7 +254,7 @@ jso_schema_validation_result jso_schema_validation_object_value(jso_schema *sche
 {
 	if (jso_virt_value_type(instance) != JSO_TYPE_OBJECT) {
 		return jso_schema_validation_value_type_error(
-				schema, pos, JSO_TYPE_OBJECT, jso_virt_value_type(instance));
+				pos, JSO_TYPE_OBJECT, jso_virt_value_type(instance));
 	}
 
 	JSO_ASSERT_EQ(JSO_SCHEMA_VALUE_TYPE_OBJECT, JSO_SCHEMA_VALUE_TYPE_P(pos->current_value));
@@ -289,12 +288,11 @@ jso_schema_validation_result jso_schema_validation_object_value(jso_schema *sche
 					JSO_ASSERT_EQ(JSO_TYPE_P(item), JSO_TYPE_STRING);
 					if (jso_virt_object_has_str_key(instance_obj, key)
 							&& !jso_virt_object_has_str_key(instance_obj, JSO_STR_P(item))) {
-						jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
-								"Object key %s is required by dependency %s but it is not present",
-								JSO_SVAL_P(item), JSO_STRING_VAL(key));
 						pos->validation_invalid_reason
 								= JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-						return JSO_SCHEMA_VALIDATION_INVALID;
+						return jso_schema_validation_error_keyword_format(pos, "dependencies",
+								"Object key %s is required by dependency %s but it is not present",
+								JSO_SVAL_P(item), JSO_STRING_VAL(key));
 					}
 				}
 				JSO_ARRAY_FOREACH_END;
@@ -316,12 +314,11 @@ jso_schema_validation_result jso_schema_validation_object_value(jso_schema *sche
 				JSO_ASSERT_EQ(JSO_TYPE_P(item), JSO_TYPE_STRING);
 				if (jso_virt_object_has_str_key(instance_obj, key)
 						&& !jso_virt_object_has_str_key(instance_obj, JSO_STR_P(item))) {
-					jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+					pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
+					return jso_schema_validation_error_keyword_format(pos, "dependent_required",
 							"Object key %s is required by required dependent %s but it is not "
 							"present",
 							JSO_SVAL_P(item), JSO_STRING_VAL(key));
-					pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-					return JSO_SCHEMA_VALIDATION_INVALID;
 				}
 			}
 			JSO_ARRAY_FOREACH_END;
@@ -333,12 +330,11 @@ jso_schema_validation_result jso_schema_validation_object_value(jso_schema *sche
 		jso_uint kw_uval = JSO_SCHEMA_KEYWORD_DATA_UINT(objval->min_properties);
 		size_t objlen = jso_virt_object_count(jso_virt_value_object(instance));
 		if (objlen < kw_uval) {
-			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
+			return jso_schema_validation_error_keyword_format(pos, "min_properties",
 					"Object number of properties is %zu which is lower than minimum number of "
 					"properties %lu",
 					objlen, kw_uval);
-			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-			return JSO_SCHEMA_VALIDATION_INVALID;
 		}
 	}
 
@@ -348,10 +344,9 @@ jso_schema_validation_result jso_schema_validation_object_value(jso_schema *sche
 		JSO_ARRAY_FOREACH(JSO_SCHEMA_KEYWORD_DATA_ARR_STR(objval->required), item)
 		{
 			if (!jso_virt_object_has_str_key(instance_object, JSO_STR_P(item))) {
-				jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
-						"Object does not have required property with key %s", JSO_SVAL_P(item));
 				pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-				return JSO_SCHEMA_VALIDATION_INVALID;
+				return jso_schema_validation_error_keyword_format(pos, "required",
+						"Object does not have required property with key %s", JSO_SVAL_P(item));
 			}
 		}
 		JSO_ARRAY_FOREACH_END;

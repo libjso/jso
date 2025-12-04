@@ -1,5 +1,5 @@
-/*jso_schema_validation_value_callback
- * Copyright (c) 2023-2025 Jakub Zelenka. All rights reserved.
+/*
+ * Copyright (c) 2024-2025 Jakub Zelenka. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -34,50 +34,31 @@ static void jso_schema_validation_result_set_parent_result(
 	jso_schema_validation_set_result(parent_pos, result, parent_pos->dependency_key == NULL);
 }
 
-static void jso_schema_validation_result_propagate_errors(jso_schema *schema,
-		jso_schema_validation_position *pos, jso_schema_validation_position *parent_pos,
-		jso_bool should_propagate)
-{
-	if (!should_propagate || pos->errors == NULL || pos->errors->count == 0) {
-		// Clear errors if we're not propagating them (e.g., for type mismatches in anyOf)
-		if (!should_propagate && pos->errors != NULL) {
-			jso_schema_validation_position_clear_errors(pos);
-		}
-		return;
-	}
-
-	if (jso_schema_validation_error_propagate_to_parent(pos, parent_pos) == JSO_FAILURE) {
-		// On allocation failure, set a generic error on parent
-		jso_schema_validation_error_set(schema, parent_pos, JSO_SCHEMA_ERROR_VALIDATION_PROPAGATION,
-				"Error propagation failed");
-	}
-}
-
-void jso_schema_validation_result_propagate(jso_schema *schema, jso_schema_validation_position *pos)
+jso_rc jso_schema_validation_result_propagate(
+		jso_schema *schema, jso_schema_validation_position *pos)
 {
 	jso_schema_validation_position *parent_pos = pos->parent;
 	if (parent_pos == NULL) {
-		return;
+		return JSO_SUCCESS;
 	}
 	if (parent_pos->is_final_validation_result) {
-		return;
+		return JSO_SUCCESS;
 	}
 
-	jso_bool should_propagate_errors = true;
+	jso_bool should_propagate_errors = false;
+	jso_uint32 branch_to_propagate = 0, branch_to_free = 0;
 
 	if (pos->position_type == JSO_SCHEMA_VALIDATION_POSITION_BASIC) {
 		if (pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
 			jso_schema_validation_result_set_parent_result(parent_pos, pos->validation_result);
-			jso_schema_validation_result_propagate_errors(schema, pos, parent_pos, true);
+			should_propagate_errors = true;
 		}
 	} else {
 		JSO_ASSERT_EQ(pos->position_type, JSO_SCHEMA_VALIDATION_POSITION_COMPOSED);
 		switch (pos->composition_type) {
 			case JSO_SCHEMA_VALIDATION_COMPOSITION_REF:
 				jso_schema_validation_result_set_parent_result(parent_pos, pos->validation_result);
-				if (pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
-					jso_schema_validation_result_propagate_errors(schema, pos, parent_pos, true);
-				}
+				should_propagate_errors = pos->validation_result != JSO_SCHEMA_VALIDATION_VALID;
 				break;
 
 			case JSO_SCHEMA_VALIDATION_COMPOSITION_TYPE_ANY:
@@ -85,13 +66,10 @@ void jso_schema_validation_result_propagate(jso_schema *schema, jso_schema_valid
 				if (pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
 					if (pos->validation_invalid_reason
 							== JSO_SCHEMA_VALIDATION_INVALID_REASON_TYPE) {
-						// Don't propagate type errors - wrong type, schema not applicable
-						should_propagate_errors = false;
+						should_propagate_errors = true;
 					} else {
 						jso_schema_validation_result_set_parent_result(
 								parent_pos, pos->validation_result);
-						jso_schema_validation_result_propagate_errors(
-								schema, pos, parent_pos, true);
 					}
 				}
 				break;
@@ -100,14 +78,10 @@ void jso_schema_validation_result_propagate(jso_schema *schema, jso_schema_valid
 				// Typed composition ignores failures for invalid type
 				if (pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
 					if (pos->validation_invalid_reason
-							== JSO_SCHEMA_VALIDATION_INVALID_REASON_TYPE) {
-						// Don't propagate type errors
-						should_propagate_errors = false;
-					} else {
+							!= JSO_SCHEMA_VALIDATION_INVALID_REASON_TYPE) {
 						jso_schema_validation_result_set_parent_result(
 								parent_pos, pos->validation_result);
-						jso_schema_validation_result_propagate_errors(
-								schema, pos, parent_pos, true);
+						should_propagate_errors = true;
 					}
 				} else {
 					parent_pos->type_valid = true;
@@ -118,39 +92,32 @@ void jso_schema_validation_result_propagate(jso_schema *schema, jso_schema_valid
 				if (pos->validation_result != JSO_SCHEMA_VALIDATION_VALID) {
 					jso_schema_validation_result_set_parent_result(
 							parent_pos, pos->validation_result);
-					jso_schema_validation_result_propagate_errors(schema, pos, parent_pos, true);
+					should_propagate_errors = true;
 				}
 				break;
 
 			case JSO_SCHEMA_VALIDATION_COMPOSITION_ANY:
 				if (pos->validation_result == JSO_SCHEMA_VALIDATION_VALID) {
 					parent_pos->any_of_valid = true;
-					// Clear any accumulated errors since at least one schema matched
-					should_propagate_errors = false;
 				} else {
-					// Don't propagate errors yet - anyOf might still succeed with another schema
-					should_propagate_errors = false;
+					should_propagate_errors = true;
 				}
 				break;
 
 			case JSO_SCHEMA_VALIDATION_COMPOSITION_ONE:
 				if (pos->validation_result == JSO_SCHEMA_VALIDATION_VALID) {
 					if (parent_pos->one_of_valid) {
-						jso_schema_validation_error_set(schema, parent_pos,
-								JSO_SCHEMA_ERROR_VALIDATION_COMPOSITION,
-								"More than one oneOf subschema was valid");
+						jso_schema_validation_error_composition_set(
+								parent_pos, "oneOf", "More than one oneOf subschema was valid");
 						pos->validation_invalid_reason
 								= JSO_SCHEMA_VALIDATION_INVALID_REASON_COMPOSITION;
 						jso_schema_validation_result_set_parent_result(
 								parent_pos, JSO_SCHEMA_VALIDATION_INVALID);
 					} else {
 						parent_pos->one_of_valid = true;
-						// Clear errors on first valid match
-						should_propagate_errors = false;
 					}
 				} else {
-					// Don't propagate errors yet - oneOf might still succeed
-					should_propagate_errors = false;
+					should_propagate_errors = true;
 				}
 				break;
 
@@ -161,60 +128,62 @@ void jso_schema_validation_result_propagate(jso_schema *schema, jso_schema_valid
 					if (parent_pos->cond_then_validated && !parent_pos->cond_then_valid) {
 						jso_schema_validation_result_set_parent_result(
 								parent_pos, JSO_SCHEMA_VALIDATION_INVALID);
-					} else if (parent_pos->cond_else_validated && !parent_pos->cond_else_valid) {
-						// else failed but if succeeded - clear else errors
-						should_propagate_errors = false;
+					}
+					if (parent_pos->cond_else_validated && !parent_pos->cond_else_valid) {
+						branch_to_free = 2;
 					}
 				} else {
 					if (parent_pos->cond_else_validated && !parent_pos->cond_else_valid) {
 						jso_schema_validation_result_set_parent_result(
 								parent_pos, JSO_SCHEMA_VALIDATION_INVALID);
-					} else if (parent_pos->cond_then_validated && !parent_pos->cond_then_valid) {
-						// then failed but if also failed - clear then errors
-						should_propagate_errors = false;
+					}
+					if (parent_pos->cond_then_validated && !parent_pos->cond_then_valid) {
+						branch_to_free = 1;
 					}
 				}
-				// Don't propagate if condition errors
-				should_propagate_errors = false;
 				break;
 
 			case JSO_SCHEMA_VALIDATION_COMPOSITION_THEN:
 				parent_pos->cond_then_validated = true;
 				parent_pos->cond_then_valid = pos->validation_result == JSO_SCHEMA_VALIDATION_VALID;
-				if (parent_pos->cond_if_validated && !parent_pos->cond_then_valid) {
-					if (parent_pos->cond_if_valid) {
+				if (parent_pos->cond_if_validated && parent_pos->cond_if_valid) {
+					if (!parent_pos->cond_then_valid) {
 						jso_schema_validation_result_set_parent_result(
 								parent_pos, pos->validation_result);
-						jso_schema_validation_result_propagate_errors(
-								schema, pos, parent_pos, true);
-					} else {
-						// if failed, then errors don't matter
-						should_propagate_errors = false;
+						should_propagate_errors = true;
 					}
+					if (parent_pos->cond_else_validated && !parent_pos->cond_else_valid) {
+						branch_to_free = 2;
+					}
+				} else if (!parent_pos->cond_then_valid) {
+					branch_to_propagate = 1;
+					should_propagate_errors = true;
 				}
 				break;
 
 			case JSO_SCHEMA_VALIDATION_COMPOSITION_ELSE:
 				parent_pos->cond_else_validated = true;
 				parent_pos->cond_else_valid = pos->validation_result == JSO_SCHEMA_VALIDATION_VALID;
-				if (parent_pos->cond_if_validated && !parent_pos->cond_else_valid) {
-					if (!parent_pos->cond_if_valid) {
+				if (parent_pos->cond_if_validated && !parent_pos->cond_if_valid) {
+					if (!parent_pos->cond_else_valid) {
 						jso_schema_validation_result_set_parent_result(
 								parent_pos, pos->validation_result);
-						jso_schema_validation_result_propagate_errors(
-								schema, pos, parent_pos, true);
-					} else {
-						// if succeeded, else errors don't matter
-						should_propagate_errors = false;
+						should_propagate_errors = true;
 					}
+					if (parent_pos->cond_then_validated && !parent_pos->cond_then_valid) {
+						branch_to_free = 1;
+					}
+				} else if (!parent_pos->cond_else_valid) {
+					branch_to_propagate = 2;
+					should_propagate_errors = true;
 				}
 				break;
 
 			default:
 				JSO_ASSERT_EQ(pos->composition_type, JSO_SCHEMA_VALIDATION_COMPOSITION_NOT);
 				if (pos->validation_result == JSO_SCHEMA_VALIDATION_VALID) {
-					jso_schema_validation_error_set(schema, parent_pos,
-							JSO_SCHEMA_ERROR_VALIDATION_COMPOSITION, "Negated valid validation");
+					jso_schema_validation_error_keyword_set(
+							parent_pos, "not", "Negated valid validation");
 					pos->validation_invalid_reason
 							= JSO_SCHEMA_VALIDATION_INVALID_REASON_COMPOSITION;
 					jso_schema_validation_result_set_parent_result(
@@ -227,8 +196,16 @@ void jso_schema_validation_result_propagate(jso_schema *schema, jso_schema_valid
 		}
 	}
 
-	// Clean up errors if we decided not to propagate them
-	if (!should_propagate_errors && pos->errors != NULL) {
-		jso_schema_validation_position_clear_errors(pos);
+	if (should_propagate_errors) {
+		if (jso_schema_validation_error_propagate_to_parent(pos, parent_pos, branch_to_propagate)
+				== JSO_FAILURE) {
+			// On allocation failure, set a generic error on parent
+			return jso_schema_error_set(
+					schema, JSO_SCHEMA_ERROR_VALIDATION_PROPAGATION, "Error propagation failed");
+		}
+	} else {
+		jso_schema_validation_errors_branch_free(pos->errors, branch_to_free);
 	}
+
+	return JSO_SUCCESS;
 }

@@ -1237,7 +1237,9 @@ struct _jso_schema_validation_position_error {
 	jso_schema_validation_position_error_location *location;
 	jso_uint32 location_size;
 	jso_uint32 location_capacity;
+	jso_uint16 branch;
 	jso_schema_error_type error_type;
+	char *keyword;
 	char *message;
 };
 

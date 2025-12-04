@@ -53,8 +53,8 @@ jso_schema_validation_result jso_schema_validation_value(jso_schema *schema,
 		if (JSO_SCHEMA_VALUE_FLAGS_P(value) & JSO_SCHEMA_VALUE_FLAG_OBJECT_TRUE) {
 			return JSO_SCHEMA_VALIDATION_VALID;
 		}
-		jso_schema_error_set(
-				schema, JSO_SCHEMA_ERROR_VALIDATION_FALSE, "Schema value is always invalid");
+		jso_schema_validation_error_set(
+				pos, JSO_SCHEMA_ERROR_VALIDATION_FALSE, "type", "Schema value is always invalid");
 		pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_VALUE;
 		return JSO_SCHEMA_VALIDATION_INVALID;
 	}

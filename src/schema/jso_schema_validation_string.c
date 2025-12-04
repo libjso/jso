@@ -39,20 +39,18 @@ jso_schema_validation_result jso_schema_validation_string_value_str(
 	if (JSO_SCHEMA_KW_IS_SET(strval->min_length)) {
 		jso_uint kw_uval = JSO_SCHEMA_KEYWORD_DATA_UINT(strval->min_length);
 		if (jso_virt_string_len(instance_str) < kw_uval) {
-			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+			return jso_schema_validation_error_keyword_format(pos, "minLength",
 					"String length %zu is lower than minimum length %lu",
 					jso_virt_string_len(instance_str), kw_uval);
-			return JSO_SCHEMA_VALIDATION_INVALID;
 		}
 	}
 
 	if (JSO_SCHEMA_KW_IS_SET(strval->max_length)) {
 		jso_uint kw_uval = JSO_SCHEMA_KEYWORD_DATA_UINT(strval->max_length);
 		if (jso_virt_string_len(instance_str) > kw_uval) {
-			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+			return jso_schema_validation_error_keyword_format(pos, "maxLength",
 					"String length %zu is greater than maximum length %lu",
 					jso_virt_string_len(instance_str), kw_uval);
-			return JSO_SCHEMA_VALIDATION_INVALID;
 		}
 	}
 
@@ -64,10 +62,9 @@ jso_schema_validation_result jso_schema_validation_string_value_str(
 				jso_virt_string_len(instance_str), code, match_data);
 		jso_re_match_data_free(match_data);
 		if (match_result <= 0) {
-			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+			return jso_schema_validation_error_keyword_format(pos, "pattern",
 					"String pattern %s does not match value %s",
 					JSO_STRING_VAL(JSO_RE_CODE_PATTERN(code)), jso_virt_string_val(instance_str));
-			return JSO_SCHEMA_VALIDATION_INVALID;
 		}
 	}
 
@@ -80,7 +77,7 @@ jso_schema_validation_result jso_schema_validation_string_value(jso_schema *sche
 {
 	if (jso_virt_value_type(instance) != JSO_TYPE_STRING) {
 		return jso_schema_validation_value_type_error(
-				schema, pos, JSO_TYPE_STRING, jso_virt_value_type(instance));
+				pos, JSO_TYPE_STRING, jso_virt_value_type(instance));
 	}
 
 	return jso_schema_validation_string_value_str(schema, pos, jso_virt_value_string(instance));

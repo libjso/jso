@@ -29,7 +29,6 @@
 #include "jso_schema_validation_value.h"
 
 #include "jso_schema_array.h"
-#include "jso_schema_error.h"
 #include "jso_schema_keyword.h"
 
 #include "../jso.h"
@@ -86,7 +85,6 @@ jso_schema_validation_result jso_schema_validation_array_start(
 jso_schema_validation_result jso_schema_validation_array_append(
 		jso_schema_validation_stack *stack, jso_schema_validation_position *pos)
 {
-	jso_schema *schema = stack->root_schema;
 	jso_schema_value *value = pos->current_value;
 	JSO_ASSERT_EQ(JSO_SCHEMA_VALUE_TYPE_ARRAY, JSO_SCHEMA_VALUE_TYPE_P(value));
 	jso_schema_value_array *arrval = JSO_SCHEMA_VALUE_DATA_ARR_P(value);
@@ -100,11 +98,10 @@ jso_schema_validation_result jso_schema_validation_array_append(
 		size_t arrlen = pos->count;
 		if (arrlen > max_items) {
 			jso_schema_validation_set_final_result(pos, JSO_SCHEMA_VALIDATION_INVALID);
-			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
+			return jso_schema_validation_error_keyword_format(pos, "max_items",
 					"Array number of items is %zu which is greater than max number of items %lu",
 					arrlen, max_items);
-			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-			return JSO_SCHEMA_VALIDATION_INVALID;
 		}
 	}
 
@@ -126,10 +123,9 @@ jso_schema_validation_result jso_schema_validation_array_append(
 				JSO_ASSERT_GT(pos->count, 0);
 				if (jso_schema_array_get(items, pos->count - 1) == NULL) {
 					jso_schema_validation_set_final_result(pos, JSO_SCHEMA_VALIDATION_INVALID);
-					jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
-							"Array additional items are not allowed and number of items is lower");
 					pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-					return JSO_SCHEMA_VALIDATION_INVALID;
+					return jso_schema_validation_error_keyword_format(pos, "additional_items",
+							"Array additional items are not allowed and number of items is lower");
 				}
 			}
 		}
@@ -144,7 +140,7 @@ jso_schema_validation_result jso_schema_validation_array_value(jso_schema *schem
 {
 	if (jso_virt_value_type(instance) != JSO_TYPE_ARRAY) {
 		return jso_schema_validation_value_type_error(
-				schema, pos, JSO_TYPE_ARRAY, jso_virt_value_type(instance));
+				pos, JSO_TYPE_ARRAY, jso_virt_value_type(instance));
 	}
 
 	jso_schema_value_array *arrval = JSO_SCHEMA_VALUE_DATA_ARR_P(pos->current_value);
@@ -154,20 +150,19 @@ jso_schema_validation_result jso_schema_validation_array_value(jso_schema *schem
 		jso_uint kw_uval = JSO_SCHEMA_KEYWORD_DATA_UINT(arrval->min_items);
 		size_t arrlen = jso_virt_array_len(jso_virt_value_array(instance));
 		if (arrlen < kw_uval) {
-			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
+			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
+			return jso_schema_validation_error_keyword_format(pos, "min_items",
 					"Array number of items is %zu which is lower than minimum number of items %lu",
 					arrlen, kw_uval);
-			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-			return JSO_SCHEMA_VALIDATION_INVALID;
 		}
 	}
 
 	if (JSO_SCHEMA_KW_IS_SET(arrval->unique_items)
 			&& JSO_SCHEMA_KEYWORD_DATA_BOOL(arrval->unique_items)
 			&& !jso_virt_array_is_unique(jso_virt_value_array(instance))) {
-		jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD, "Array is not unique");
 		pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-		return JSO_SCHEMA_VALIDATION_INVALID;
+		return jso_schema_validation_error_keyword_format(
+				pos, "unique_items", "Array is not unique");
 	}
 
 	if (JSO_SCHEMA_KW_IS_SET(arrval->contains)) {
@@ -186,7 +181,7 @@ jso_schema_validation_result jso_schema_validation_array_value(jso_schema *schem
 		jso_schema_validation_stack_layer_iterator_start(stack, &iterator);
 		while ((contains_pos = jso_schema_validation_stack_layer_iterator_next(stack, &iterator))) {
 			if (jso_schema_validation_composition_check(stack, contains_pos) == JSO_FAILURE) {
-				return JSO_FAILURE;
+				return JSO_SCHEMA_VALIDATION_ERROR;
 			}
 		}
 
@@ -213,9 +208,12 @@ jso_schema_validation_result jso_schema_validation_array_value(jso_schema *schem
 					contains_pos->validation_result = jso_schema_validation_value(
 							schema, stack, contains_pos, instance_item);
 					if (jso_schema_validation_stream_should_terminate(schema, contains_pos)) {
-						return JSO_FAILURE;
+						return JSO_SCHEMA_VALIDATION_ERROR;
 					}
-					jso_schema_validation_result_propagate(schema, contains_pos);
+					if (jso_schema_validation_result_propagate(schema, contains_pos)
+							== JSO_FAILURE) {
+						return JSO_SCHEMA_VALIDATION_ERROR;
+					}
 				}
 			}
 
@@ -232,10 +230,9 @@ jso_schema_validation_result jso_schema_validation_array_value(jso_schema *schem
 
 		if (!contains_item) {
 			jso_schema_validation_set_final_result(pos, JSO_SCHEMA_VALIDATION_INVALID);
-			jso_schema_error_format(schema, JSO_SCHEMA_ERROR_VALIDATION_KEYWORD,
-					"Array does not contain item that validate against contains schema");
 			pos->validation_invalid_reason = JSO_SCHEMA_VALIDATION_INVALID_REASON_KEYWORD;
-			return JSO_SCHEMA_VALIDATION_INVALID;
+			return jso_schema_validation_error_keyword_format(pos, "contains",
+					"Array does not contain item that validate against contains schema");
 		}
 	}
 

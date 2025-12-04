@@ -61,7 +61,6 @@ JSO_API jso_rc jso_schema_validation_stream_object_start(jso_schema_validation_s
 	jso_schema_validation_stack_layer_iterator iterator;
 	jso_schema_validation_position *pos;
 	jso_schema_validation_stack *stack = JSO_STREAM_VALIDATION_STREAM_STACK_P(stream);
-	jso_schema *schema = stack->root_schema;
 
 	JSO_DBG_SV("OBJECT START");
 
@@ -79,7 +78,7 @@ JSO_API jso_rc jso_schema_validation_stream_object_start(jso_schema_validation_s
 			}
 		} else {
 			pos->validation_result = jso_schema_validation_schema_value_type_error(
-					schema, pos, JSO_SCHEMA_VALUE_TYPE_P(value), JSO_SCHEMA_VALUE_TYPE_OBJECT);
+					pos, JSO_SCHEMA_VALUE_TYPE_P(value), JSO_SCHEMA_VALUE_TYPE_OBJECT);
 		}
 	}
 
@@ -155,13 +154,15 @@ JSO_API jso_rc jso_schema_validation_stream_array_start(jso_schema_validation_st
 			}
 		} else {
 			pos->validation_result = jso_schema_validation_schema_value_type_error(
-					schema, pos, JSO_SCHEMA_VALUE_TYPE_P(value), JSO_SCHEMA_VALUE_TYPE_ARRAY);
+					pos, JSO_SCHEMA_VALUE_TYPE_P(value), JSO_SCHEMA_VALUE_TYPE_ARRAY);
 		}
 	}
 	// Now the reverse iteration is done to propagate result
 	jso_schema_validation_stack_layer_reverse_iterator_start(stack, &iterator);
 	while ((pos = jso_schema_validation_stack_layer_reverse_iterator_next(stack, &iterator))) {
-		jso_schema_validation_result_propagate(schema, pos);
+		if (jso_schema_validation_result_propagate(schema, pos) == JSO_FAILURE) {
+			return JSO_FAILURE;
+		}
 	}
 
 	// Start next iteration round in the parent.
@@ -213,7 +214,9 @@ JSO_API jso_rc jso_schema_validation_stream_array_append(jso_schema_validation_s
 			if (jso_schema_validation_stream_should_terminate(schema, pos)) {
 				return JSO_FAILURE;
 			}
-			jso_schema_validation_result_propagate(schema, pos);
+			if (jso_schema_validation_result_propagate(schema, pos) == JSO_FAILURE) {
+				return JSO_FAILURE;
+			}
 		}
 	}
 
@@ -263,7 +266,9 @@ JSO_API jso_rc jso_schema_validation_stream_value(
 				return JSO_FAILURE;
 			}
 		}
-		jso_schema_validation_result_propagate(schema, pos);
+		if (jso_schema_validation_result_propagate(schema, pos) == JSO_FAILURE) {
+			return JSO_FAILURE;
+		}
 	}
 	// Reset the layer to the last separator.
 	jso_schema_validation_stack_layer_remove(stack);

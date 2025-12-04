@@ -54,7 +54,7 @@ jso_rc jso_schema_error_format(
 	char buf[JSO_SCHEMA_ERROR_FORMAT_SIZE + 1];
 
 	va_start(args, format);
-	int written = vsnprintf(buf, JSO_SCHEMA_ERROR_FORMAT_SIZE, format, args);
+	int written = jso_vsnprintf(buf, JSO_SCHEMA_ERROR_FORMAT_SIZE, format, args);
 	va_end(args);
 
 	if (written < 0) {

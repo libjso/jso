@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Jakub Zelenka. All rights reserved.
+ * Copyright (c) 2025 Jakub Zelenka. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,30 +21,14 @@
  *
  */
 
-/**
- * @file jso_schema_validation_result.h
- * @brief JsonSchema validation result handling.
- */
+#include "jso.h"
 
-#ifndef JSO_SCHEMA_VALIDATION_RESULT_H
-#define JSO_SCHEMA_VALIDATION_RESULT_H
-
-#include "../jso_schema.h"
-
-jso_rc jso_schema_validation_result_propagate(
-		jso_schema *schema, jso_schema_validation_position *pos);
-
-static inline void jso_schema_validation_set_result(jso_schema_validation_position *pos,
-		jso_schema_validation_result result, jso_bool final_result)
+JSO_API char *jso_strdup_custom(const char *cstr)
 {
-	pos->validation_result = result;
-	pos->is_final_validation_result = final_result;
+	size_t len = strlen(cstr) + 1;
+	char *copy = jso_malloc(len);
+	if (copy) {
+		memcpy(copy, cstr, len);
+	}
+	return copy;
 }
-
-static inline void jso_schema_validation_set_final_result(
-		jso_schema_validation_position *pos, jso_schema_validation_result result)
-{
-	jso_schema_validation_set_result(pos, result, true);
-}
-
-#endif /* JSO_SCHEMA_VALIDATION_RESULT_H */

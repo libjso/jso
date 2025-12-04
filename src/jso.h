@@ -176,4 +176,24 @@ static inline jso_virt_string *jso_string_to_virt_string(jso_string *str)
 #define jso_free free
 #endif
 
+#ifndef jso_strdup
+/**
+ * Duplicate C string.
+ * @param cstr string to duplictat
+ * @return Duplicated C string
+ */
+JSO_API char *jso_strdup_custom(const char *cstr);
+/**
+ * @brief Duplicate C string
+ */
+#define jso_strdup jso_strdup_custom
+#endif
+
+#ifndef jso_vsnprintf
+/**
+ * @brief Formatted output converter creating new C string buffer
+ */
+#define jso_vsnprintf vsnprintf
+#endif
+
 #endif /* JSO_H */
